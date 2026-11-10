@@ -110,6 +110,8 @@ jobs:
           MARKETDEX_COT_MAX_MARKETS: '240'
         run: python scripts/update_cot_positioning.py
         continue-on-error: true
+      - name: Test licensed VANTA options publisher (offline; no credentials)
+        run: python scripts/tests/test_vanta_options.py
       - name: Refresh optionally licensed VANTA ticker options snapshots
         env:
           VANTA_OPTIONS_PUBLICATION_APPROVED: ${{ vars.VANTA_OPTIONS_PUBLICATION_APPROVED || 'false' }}
