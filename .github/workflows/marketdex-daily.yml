@@ -2,9 +2,14 @@ name: MARKET-DEX Daily Market Snapshot
 
 on:
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '0 17 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/marketdex-daily.yml'
+      - 'scripts/update_market_dex.py'
+      - 'scripts/requirements.txt'
 
 permissions:
   contents: read
@@ -18,9 +23,10 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: \${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Get updater files
         uses: actions/checkout@v4
@@ -28,28 +34,35 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: scripts/requirements.txt
       - name: Install data libraries
         run: pip install -r scripts/requirements.txt
-      - name: Download daily market history
+      - name: Restore historical OHLCV cache
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_cache
+          key: marketdex-equity-history-\${{ runner.os }}-\${{ github.run_id }}
+          restore-keys: |
+            marketdex-equity-history-\${{ runner.os }}-
+      - name: Download and verify Russell 1000 proxy history
         env:
-          MARKETDEX_TICKER: SPY
-          MARKETDEX_BENCHMARK: QQQ
-          MARKETDEX_PERIOD: 10y
+          MARKETDEX_PERIOD: 5y
+          MARKETDEX_BATCH_SIZE: '18'
+          MARKETDEX_RETRIES: '1'
+          MARKETDEX_PAUSE: '0.6'
         run: python scripts/update_market_dex.py
-      - name: Prepare static market data website
-        shell: bash
+      - name: Prepare static data website
         run: |
           mkdir -p public/data
-          cp data/latest.zip data/latest.json public/data/
-          echo '<!doctype html><html><body><h1>MARKET-DEX Daily Snapshot</h1><p><a href="data/latest.zip">Download latest ZIP</a></p><p><a href="data/latest.json">Freshness metadata</a></p></body></html>' > public/index.html
+          cp -R data/. public/data/
+          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a></body></html>' > public/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload daily snapshot to GitHub Pages
+      - name: Upload market snapshots
         uses: actions/upload-pages-artifact@v4
         with:
           path: public
-      - name: Publish the latest dataset
+      - name: Publish GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
