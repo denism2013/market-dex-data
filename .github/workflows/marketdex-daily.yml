@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 180
     environment:
       name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Get updater files
         uses: actions/checkout@v4
@@ -42,9 +42,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .marketdex_cache
-          key: marketdex-equity-history-\${{ runner.os }}-\${{ github.run_id }}
+          key: marketdex-equity-history-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            marketdex-equity-history-\${{ runner.os }}-
+            marketdex-equity-history-${{ runner.os }}-
       - name: Download and verify Russell 1000 proxy history
         env:
           MARKETDEX_PERIOD: 5y
