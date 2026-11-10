@@ -198,6 +198,39 @@ def fetch_source(session, template, ticker, token):
     raise RuntimeError(f'Source request failed ({type(error).__name__ if error else "retry limit"})')
 
 
+def validated_cache(ticker):
+    """Only reuse recent, source-dated snapshots; never label cache as fresh."""
+    path = CACHE / 'tickers' / (re.sub('[^A-Z0-9_-]', '_', ticker) + '.json')
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text())
+        if str(raw.get('metadata', {}).get('ticker', '')).upper() != ticker:
+            return None
+        stamp = str(raw['metadata']['run_utc'])
+        asof = dt.datetime.fromisoformat(stamp.replace('Z', '+00:00'))
+        if asof.tzinfo is None:
+            return None
+        age = (dt.datetime.now(dt.timezone.utc) - asof.astimezone(dt.timezone.utc)).total_seconds() / 86400
+        if age < -.25 or age > min(7, max(1, int(os.getenv('VANTA_OPTIONS_CACHE_MAX_DAYS', '3')))):
+            return None
+        kept = [r for r in raw.get('contracts', []) if str(r.get('expiration', '')) >= dt.datetime.now(dt.timezone.utc).date().isoformat()]
+        if not kept:
+            return None
+        raw['contracts'] = kept
+        raw['summary'] = [r for r in raw.get('summary', []) if str(r.get('expiration', '')) >= dt.datetime.now(dt.timezone.utc).date().isoformat()]
+        return raw
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def remember(ticker, payload):
+    folder = CACHE / 'tickers'
+    folder.mkdir(parents=True, exist_ok=True)
+    file = folder / (re.sub('[^A-Z0-9_-]', '_', ticker) + '.json')
+    file.write_text(json.dumps(payload, separators=(',', ':'), allow_nan=False) + '\n')
+
+
 def record_status(state, reason, **extra):
     OUTPUT.mkdir(parents=True, exist_ok=True)
     payload = {'schema': 'vanta-options-status-v1', 'generated_at_utc': now(),
@@ -229,26 +262,33 @@ def main():
     token = os.getenv('VANTA_OPTIONS_SOURCE_TOKEN', '')
     with requests.Session() as session:
         for i, tick in enumerate(ordered_symbols(), 1):
+            cached = False
             try:
                 payload = sanitize(fetch_source(session, template, tick, token), tick)
-                file = folder / (re.sub('[^A-Z0-9_-]', '_', tick) + '.json')
-                file.write_text(json.dumps(payload, separators=(',', ':'), allow_nan=False) + '\n')
-                entries.append({'ticker': tick,
-                                'path': f'data/options/tickers/{file.name}',
-                                'contracts': len(payload['contracts']),
-                                'expiries': len(payload['summary']),
-                                'provider_snapshot_utc': payload['metadata']['run_utc']})
-                print(f'VANTA {i}: {tick} {len(payload["contracts"])} contracts', flush=True)
+                remember(tick, payload)
             except Exception as exc:
-                misses.append({'ticker': tick, 'error_class': type(exc).__name__})
-                print(f'VANTA {i}: {tick} unavailable ({type(exc).__name__})', flush=True)
+                payload = validated_cache(tick)
+                cached = bool(payload)
+                misses.append({'ticker': tick, 'error_class': type(exc).__name__, 'cached_snapshot_available': cached})
+                if not payload:
+                    print(f'VANTA {i}: {tick} unavailable ({type(exc).__name__})', flush=True)
+                    continue
+            file = folder / (re.sub('[^A-Z0-9_-]', '_', tick) + '.json')
+            file.write_text(json.dumps(payload, separators=(',', ':'), allow_nan=False) + '\n')
+            entries.append({'ticker': tick,
+                            'path': f'data/options/tickers/{file.name}',
+                            'contracts': len(payload['contracts']),
+                            'expiries': len(payload['summary']),
+                            'provider_snapshot_utc': payload['metadata']['run_utc'],
+                            'cached': cached})
+            print(f'VANTA {i}: {tick} {len(payload["contracts"])} contracts'+(' [STALE CACHED]' if cached else ' [NEW]'), flush=True)
             time.sleep(max(0, min(2, float(os.getenv('VANTA_OPTIONS_PAUSE', '0.2')))))
     if not entries:
         record_status('source_unavailable', 'No valid licensed snapshots fetched. Previously verified files were not modified.', failures=len(misses))
         return
     manifest = {'schema': SCHEMA, 'generated_at_utc': now(),
                 'source': 'User-authorized, licensed external options snapshot endpoint',
-                'coverage': len(entries), 'attempted': len(entries) + len(misses),
+                'coverage': len(entries), 'attempted': len({x['ticker'] for x in entries} | {x['ticker'] for x in misses}),
                 'published_tickers': entries, 'failures': misses[:250],
                 'notes': 'Current snapshot, not historical dealer inventory. Time may differ from daily OHLCV. Missing tickers are not filled synthetically.'}
     (OUTPUT / 'manifest.json').write_text(json.dumps(manifest, separators=(',', ':')) + '\n')
