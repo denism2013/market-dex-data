@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""ORBITAL: source-traceable market universe snapshot from public iShares holdings + optional yfinance.
+
+Usage: python scripts/orbital_update_data.py
+Writes data/orbital-market-universe.json and data/orbital-company-metadata.json.
+Fund holdings are NOT official index member lists. Do not redistribute Yahoo data in violation of its terms.
+"""
+from __future__ import annotations
+import csv, io, json, logging, math, os, random, time
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    import requests
+except ImportError as e:
+    raise SystemExit('Install requests and yfinance: pip install requests yfinance') from e
+
+BASE = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == 'scripts' else Path(__file__).resolve().parent
+OUT = BASE / 'data' / 'orbital-market-universe.json'
+CACHE = BASE / 'data' / 'orbital-company-metadata.json'
+# Explicit official iShares URLs. Holdings may be sampled and differ from benchmark membership.
+FUNDS = {
+    'IWV': ('239714', 'ishares-russell-3000-etf'),
+    'IWB': ('239707', 'ishares-russell-1000-etf'),
+    'IWM': ('239710', 'ishares-russell-2000-etf'),
+    'IEFA': ('244049', 'ishares-core-msci-eafe-etf'),
+    'IEMG': ('244050', 'ishares-core-msci-emerging-markets-etf'),
+    'EWC': ('239615', 'ishares-msci-canada-etf'),
+}
+LOG = logging.getLogger('orbital')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+
+def fnum(value, default=None):
+    try:
+        x = float(str(value).replace(',', '').replace('$','').replace('%','').strip())
+        return round(x, 8) if math.isfinite(x) else default
+    except (TypeError, ValueError):
+        return default
+
+
+def clean_ticker(raw):
+    s = str(raw or '').strip().upper()
+    if not s or s in {'-', 'N/A', 'CASH', 'USD'}: return ''
+    # BlackRock represents class symbols with whitespace; Yahoo uses a dash.
+    if s.count(' ') == 1 and len(s.split(' ')[1]) <= 2: s = s.replace(' ', '-')
+    return s
+
+
+def load_fund(session, fund):
+    pid, slug = FUNDS[fund]
+    hosts = ['https://www.blackrock.com/us/individual/products', 'https://www.ishares.com/us/products']
+    errors = []
+    for host in hosts:
+        url = f'{host}/{pid}/{slug}/latest-holdings.csv'
+        for attempt in range(3):
+            try:
+                res = session.get(url, timeout=55, headers={'Accept': 'text/csv, text/plain, */*'})
+                res.raise_for_status()
+                body = res.content.decode('utf-8-sig', 'replace')
+                lines = body.splitlines()
+                start = next((i for i, line in enumerate(lines) if line.startswith('Ticker,Name,') and ',Sector,Asset Class,' in line), None)
+                if start is None: raise ValueError('Holdings header not found; possible remote format change or HTML response')
+                asof = ''
+                for line in lines[:start]:
+                    if line.startswith('Fund Holdings as of,'):
+                        fields = next(csv.reader([line])); asof = fields[1] if len(fields) > 1 else ''
+                records = []
+                for row in csv.DictReader(io.StringIO('\n'.join(lines[start:]))):
+                    if row.get('Asset Class', '').strip() != 'Equity': continue
+                    symbol = clean_ticker(row.get('Ticker'))
+                    if not symbol or len(symbol) > 22: continue
+                    w = fnum(row.get('Weight (%)'))
+                    mv = fnum(row.get('Market Value'))
+                    if mv is None or mv <= 0: continue
+                    records.append({
+                        'ticker':symbol,
+                        'name':str(row.get('Name') or symbol).strip().title(),
+                        'sector':str(row.get('Sector') or 'Unclassified').strip(),
+                        'country':str(row.get('Location') or 'Unspecified').strip(),
+                        'weight':w,
+                        'holding_value':round(mv,2),
+                        'exchange':str(row.get('Exchange') or '').strip(),
+                    })
+                if len(records) < (60 if fund == 'EWC' else 500):
+                    raise ValueError(f'Suspicious count {len(records)}; refusing to publish incomplete holdings')
+                LOG.info('%s: %s equity securities as of %s', fund, len(records), asof)
+                return {'fund':fund,'asof':asof,'source_url':url,'records':records}
+            except Exception as exc:
+                errors.append(f'{url} attempt {attempt+1}: {exc}')
+                time.sleep(min(2**attempt,4))
+    raise RuntimeError('Failed to fetch '+fund+'; '+ ' | '.join(errors[-5:]))
+
+
+def enrich_yfinance(rows, cache, max_queries=85):
+    """Rate-limited, rotating metadata refresh. No invented data when unavailable.
+    Quotes for every security are not practical via free, unauthenticated Yahoo APIs.
+    Use the ticker cache to spread coverage over many daily runs.
+    """
+    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return cache, 0
+    try:
+        import yfinance as yf
+    except ImportError:
+        LOG.warning('yfinance unavailable; publishing ETF holdings only')
+        return cache, 0
+    tickers = list({r['ticker'] for r in rows if r['country'] == 'United States'})
+    priority = sorted(rows, key=lambda r: r.get('holding_value') or 0, reverse=True)
+    priority = [r['ticker'] for r in priority if r['country'] == 'United States']
+    uncached = [t for t in dict.fromkeys(priority) if t not in cache or not cache[t].get('industry')]
+    # Refresh a small fraction of cached records each day without busting rate limits.
+    day = datetime.now(timezone.utc).timetuple().tm_yday
+    dated = [t for t in tickers if t in cache and t not in uncached]
+    rng = random.Random(day)
+    rng.shuffle(dated)
+    selection = (uncached[:max_queries//2] + dated[:max_queries//2])[:max_queries]
+    updated = 0
+    for idx, ticker in enumerate(selection):
+        try:
+            info = yf.Ticker(ticker).get_info()
+            if not isinstance(info, dict) or not info.get('symbol'): continue
+            cache[ticker] = {
+                'industry':str(info.get('industry') or '').strip()[:80],
+                'sector':str(info.get('sector') or '').strip()[:80],
+                'market_cap':fnum(info.get('marketCap')),
+                'trailing_pe':fnum(info.get('trailingPE')),
+                'forward_pe':fnum(info.get('forwardPE')),
+                'currency':str(info.get('currency') or '')[:8],
+                'updated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            }
+            updated += 1
+        except Exception as exc:
+            if idx < 3: LOG.warning('Yahoo metadata unavailable for %s: %s', ticker, str(exc)[:150])
+        if idx % 20 == 0: LOG.info('Yahoo enrichment: %s/%s processed', idx+1, len(selection))
+        time.sleep(0.3)
+    return cache, updated
+
+
+def benchmark_returns():
+    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return {}
+    try:
+        import yfinance as yf
+        frames = yf.download(' '.join(FUNDS), period='15mo', interval='1d', auto_adjust=True, progress=False,
+                             group_by='ticker', threads=2, timeout=20)
+        result={}
+        for fund in FUNDS:
+            try:
+                close = frames[fund]['Close'].dropna()
+                if len(close)<3: continue
+                now = float(close.iloc[-1]); year = int(close.index[-1].year)
+                yseries = close[close.index.year < year]
+                start_y = float(yseries.iloc[-1]) if len(yseries) else None
+                result[fund]={
+                    '1d':round(100*(now/float(close.iloc[-2])-1),3),
+                    '1m':round(100*(now/float(close.iloc[-22 if len(close)>=22 else 0])-1),3) if len(close)>2 else None,
+                    'ytd':round(100*(now/start_y-1),3) if start_y else None,
+                    'asof':str(close.index[-1].date()),
+                }
+            except Exception: pass
+        return result
+    except Exception as exc:
+        LOG.warning('Benchmark quotes failed (holdings still valid): %s', str(exc)[:200]); return {}
+
+
+def leaf(row, ticker_cache, fund, returns):
+    meta=ticker_cache.get(row['ticker'],{})
+    return {
+        'id':f"{fund}-{row['ticker']}",'name':row['name'], 'kind':'stock','ticker':row['ticker'],
+        'sector':row['sector'],'industry':meta.get('industry') or None,
+        'weight':row['weight'],'marketCap':meta.get('market_cap'),
+        'pe':meta.get('trailing_pe'), 'country':row['country'],
+        'exchange':row['exchange'], 'returns':None,
+        'source':fund,
+    }
+
+
+def branch(id, name, kind, children, source=None, subtitle=None, returns=None):
+    # Parent weights are source-local holdings weights; never add across ETF sources.
+    weights=[x.get('weight') for x in children]
+    total = round(sum(x for x in weights if isinstance(x,(float,int))),4) if source and all(x is not None for x in weights) else None
+    return {'id':id, 'name':name, 'kind':kind, 'subtitle':subtitle, 'source':source,
+            'weight':total, 'returns':returns, 'children':children}
+
+
+def by_sector(rows, cache, source, idprefix):
+    sectors=defaultdict(list)
+    for r in rows: sectors[r['sector']].append(r)
+    out=[]
+    for sector, members in sorted(sectors.items(), key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
+        industries=defaultdict(list)
+        for r in members:
+            industry=(cache.get(r['ticker']) or {}).get('industry') or 'Industry unclassified'
+            industries[industry].append(r)
+        indnodes=[]
+        for ind, records in sorted(industries.items(),key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
+            ls=[leaf(r, cache, source, None) for r in sorted(records,key=lambda x:-(x.get('weight') or 0))]
+            indnodes.append(branch(f'{idprefix}/{sector}/{ind}',ind,'industry',ls,source=source))
+        out.append(branch(f'{idprefix}/{sector}',sector,'sector',indnodes,source=source))
+    return out
+
+
+def build(holdings, cache, performance):
+    iwv = holdings['IWV']['records']; iwb = holdings['IWB']['records']; iwm = holdings['IWM']['records']
+    big={r['ticker'] for r in iwb}; small={r['ticker'] for r in iwm}
+    russell_big = [r for r in iwv if r['ticker'] in big]
+    russell_small = [r for r in iwv if r['ticker'] in small and r['ticker'] not in big]
+    remainder = [r for r in iwv if r['ticker'] not in big and r['ticker'] not in small]
+    # Top-200 partition is an ETF-holdings proxy, NOT FTSE Russell official membership.
+    sorted_big = sorted(russell_big, key=lambda r:-(r.get('holding_value') or 0))
+    top200, midrest = sorted_big[:200], sorted_big[200:]
+    r1000 = branch('r1000','Russell 1000 · IWB mapped','segment',[
+        branch('top200','Largest 200 · estimated','segment',by_sector(top200,cache,'IWV','top200'),source='IWV',subtitle='Holdings rank, not official Top 200'),
+        branch('midcap','Remaining Russell 1000 proxy','segment',by_sector(midrest,cache,'IWV','midcap'),source='IWV',subtitle='Not official Russell Midcap membership'),
+    ],source='IWV',returns=performance.get('IWB'),subtitle='IWV holdings matched to IWB; may omit constituents')
+    r2000 = branch('r2000','Russell 2000 · IWM mapped','segment',by_sector(russell_small,cache,'IWV','r2000'),source='IWV',returns=performance.get('IWM'),subtitle='IWV holdings matched to IWM; sampled holdings')
+    ussegments=[r1000,r2000]
+    if remainder:
+        ussegments.append(branch('unmapped','Unmapped IWV holdings','segment',by_sector(remainder,cache,'IWV','unmapped'),source='IWV',subtitle='Holdings outside IWB/IWM ETF overlap; not an extra Russell index'))
+    r3000=branch('r3000','Russell 3000 · IWV proxy','benchmark',ussegments,source='IWV',returns=performance.get('IWV'),subtitle='ETF constituents, not licensed Russell 3000 membership')
+    us=branch('us','United States','region',[r3000],returns=performance.get('IWV'))
+    iefa=holdings['IEFA']['records']; ewc=holdings['EWC']['records']
+    def countries(rows, fund):
+        groups=defaultdict(list)
+        for r in rows: groups[r['country']].append(r)
+        return [branch(f'{fund}/{country}',country,'country',by_sector(rr,cache,fund,f'{fund}/{country}'),source=fund)
+                for country,rr in sorted(groups.items(),key=lambda pair:-sum(z.get('weight') or 0 for z in pair[1]))]
+    developed=branch('developed','Developed ex-U.S.','region',[
+        branch('iefa','MSCI EAFE IMI · IEFA proxy','benchmark',countries(iefa,'IEFA'),source='IEFA',returns=performance.get('IEFA'),subtitle='Developed excluding U.S. and Canada'),
+        branch('canada','Canada · EWC proxy','benchmark',countries(ewc,'EWC'),source='EWC',returns=performance.get('EWC'),subtitle='Country ETF, not full Canadian market'),
+    ],subtitle='Developed exposures drawn from distinct ETF sources; weights cannot be summed')
+    iemg=holdings['IEMG']['records']; emerging=branch('emerging','Emerging markets','region',[
+        branch('iemg','MSCI EM IMI · IEMG proxy','benchmark',countries(iemg,'IEMG'),source='IEMG',returns=performance.get('IEMG'),subtitle='Broad EM ETF holdings; not an exhaustive EM market list')
+    ],returns=performance.get('IEMG'))
+    root=branch('global','Global equity universe','universe',[us,developed,emerging],subtitle='Three geographic realms. Sources not globally cap-weighted or directly additive.')
+    return {
+        'schema':'orbital-v1','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'mode':'holdings-proxy', 'root':root,
+        'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
+        'methodology':{
+            'universe':'ETF portfolio holdings as proxies, not complete or licensed index membership.',
+            'weights':'Percent of each source ETF. Values are comparable only within the same fund, not across funds.',
+            'size':'Russell 1000/2000 mapped by ETF overlaps; Top 200 is estimated by holdings market-value rank.',
+            'industry':'Yahoo Finance metadata for companies with successful, cached enrichment; otherwise Unclassified.',
+            'returns':'Yahoo Finance adjusted ETF close returns; benchmarks reflect ETF proxies, not stock-level performance.',
+            'coverage':'Funds may sample constituents; derivative/cash exposures excluded. No claim of global exhaustiveness.',
+        }
+    }
+
+
+def main():
+    OUT.parent.mkdir(parents=True,exist_ok=True)
+    session=requests.Session()
+    session.headers.update({'User-Agent':'Mozilla/5.0 (compatible; ORBITAL-Research/1.0; holdings analysis)'})
+    holdings={}
+    for fund in FUNDS:
+        holdings[fund]=load_fund(session,fund)
+    cache={}
+    if CACHE.exists():
+        try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
+        except Exception: LOG.warning('Ignoring damaged metadata cache')
+    cache, n=enrich_yfinance(holdings['IWV']['records'],cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
+    performance=benchmark_returns()
+    data=build(holdings,cache,performance)
+    count=sum(len(holdings[t]['records']) for t in ('IWV','IEFA','IEMG','EWC'))
+    if count<4000: raise RuntimeError(f'Refusing incomplete combined dataset ({count} holdings)')
+    OUT.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    CACHE.write_text(json.dumps(cache,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    LOG.info('Wrote %s (%s bytes), approx %s holdings across non-overlapping sources, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
+
+if __name__=='__main__': main()
