@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MARKET-DEX daily equity universe snapshot, scheduled 5 PM New York weekdays.
 
-Universe: current iShares IWB equity holdings (Russell 1000 proxy, not point-in-time).
+Universe: current iShares IWV equity holdings (Russell 3000 proxy, not point-in-time).
 Outputs: data/latest.zip; data/universe.json; data/tickers/<SYMBOL>.zip.
 Uses adjusted yfinance OHLCV. Neither true order flow nor live quotes.
 """
@@ -29,9 +29,9 @@ BASE = Path(__file__).resolve().parents[1]
 DATA = BASE / "data"
 CACHE = Path(os.environ.get("MARKETDEX_CACHE_DIR", str(BASE / ".marketdex_cache")))
 HOLDINGS_URLS = [
-    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/1395165510754.ajax?fileType=csv&fileName=IWB_holdings&dataType=fund",
-    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/1467271812596.ajax?fileType=csv&fileName=IWB_holdings&dataType=fund",
-    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/latest-holdings.csv",
+    "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf/1395165510754.ajax?fileType=csv&fileName=IWV_holdings&dataType=fund",
+    "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf/1467271812596.ajax?fileType=csv&fileName=IWV_holdings&dataType=fund",
+    "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf/latest-holdings.csv",
 ]
 PUBLISHED_UNIVERSE_URL = "https://denism2013.github.io/market-dex-data/data/universe.json"
 VALID = re.compile(r"^[A-Z0-9.^=_-]{1,24}$")
@@ -86,8 +86,8 @@ def parse_holdings(source: str) -> tuple[list[dict], str]:
             "sector": item.get("Sector", "").strip(),
             "weight_pct": item.get("Weight (%)", "").replace(",", "").strip(),
         }
-    if len(members) < 900:
-        raise RuntimeError(f"IWB holdings returned only {len(members)} equity symbols")
+    if len(members) < 2000:
+        raise RuntimeError(f"IWV holdings returned only {len(members)} equity symbols; expected a Russell 3000-scale universe")
     return list(members.values()), asof
 
 
@@ -109,14 +109,14 @@ def discover_universe() -> tuple[list[dict], str, str]:
             )
             r.raise_for_status()
             members, asof = parse_holdings(r.text)
-            return members, asof, "iShares IWB published fund holdings (Russell 1000 proxy)"
+            return members, asof, "iShares IWV published fund holdings (Russell 3000 proxy)"
         except Exception as exc:
             last_error = exc
-            print("IWB source variant unavailable:", str(exc)[:160], flush=True)
+            print("IWV source variant unavailable:", str(exc)[:160], flush=True)
     try:
-        raise RuntimeError("All IWB holdings endpoint variants unavailable") from last_error
+        raise RuntimeError("All IWV holdings endpoint variants unavailable") from last_error
     except Exception as exc:
-        print("IWB source temporarily unavailable:", str(exc)[:240], flush=True)
+        print("IWV source temporarily unavailable:", str(exc)[:240], flush=True)
         try:
             local = CACHE / "universe.json"
             if local.exists():
@@ -126,11 +126,11 @@ def discover_universe() -> tuple[list[dict], str, str]:
                 r.raise_for_status()
                 data = r.json()
             members = data.get("members") or []
-            if len(members) >= 900:
-                return members, data.get("holdings_as_of", ""), "previously verified IWB holdings (fallback)"
+            if len(members) >= 2000 and "IWV" in str(data.get("source", "")).upper():
+                return members, data.get("holdings_as_of", ""), "previously verified IWV holdings (fallback)"
         except Exception as again:
             print("Previous-universe fallback also unavailable:", str(again)[:240], flush=True)
-        raise RuntimeError("Cannot verify the Russell 1000 proxy membership; refusing to invent a universe") from exc
+        raise RuntimeError("Cannot verify the Russell 3000 proxy membership; refusing to invent a universe") from exc
 
 
 def tidy(frame: pd.DataFrame, min_rows: int = 20) -> pd.DataFrame:
@@ -382,7 +382,7 @@ def main() -> None:
         "generated_at_utc": now.isoformat(timespec="seconds"),
         "holdings_as_of": holdings_asof,
         "source": source,
-        "universe_note": "Current iShares IWB equity holdings, a Russell 1000 proxy. Historical backtests using current members have survivorship bias.",
+        "universe_note": "Current iShares IWV equity holdings, a Russell 3000 proxy. Historical backtests using current members have survivorship bias.",
         "requested_equities": len(equities),
         "available_equities": len([item for item in items if item["symbol"] in equities]),
         "requested_total": len(all_symbols),
@@ -399,7 +399,7 @@ def main() -> None:
         f"bytes {total_bytes:,}",
         flush=True,
     )
-    if len(items) < min(100, max(3, len(equities)//6)):
+    if len(items) < min(300, max(3, len(equities)//6)):
         raise RuntimeError("Insufficient downloaded history; refusing to advertise sparse universe")
 
 
