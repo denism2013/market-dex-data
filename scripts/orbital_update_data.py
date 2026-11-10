@@ -201,22 +201,25 @@ def by_sector(rows, cache, source, idprefix):
 
 def build(holdings, cache, performance):
     iwv = holdings['IWV']['records']; iwb = holdings['IWB']['records']; iwm = holdings['IWM']['records']
-    big={r['ticker'] for r in iwb}; small={r['ticker'] for r in iwm}
-    russell_big = [r for r in iwv if r['ticker'] in big]
-    russell_small = [r for r in iwv if r['ticker'] in small and r['ticker'] not in big]
-    remainder = [r for r in iwv if r['ticker'] not in big and r['ticker'] not in small]
-    # Top-200 partition is an ETF-holdings proxy, NOT FTSE Russell official membership.
-    sorted_big = sorted(russell_big, key=lambda r:-(r.get('holding_value') or 0))
-    top200, midrest = sorted_big[:200], sorted_big[200:]
-    r1000 = branch('r1000','Russell 1000 · IWB mapped','segment',[
-        branch('top200','Largest 200 · estimated','segment',by_sector(top200,cache,'IWV','top200'),source='IWV',subtitle='Holdings rank, not official Top 200'),
-        branch('midcap','Remaining Russell 1000 proxy','segment',by_sector(midrest,cache,'IWV','midcap'),source='IWV',subtitle='Not official Russell Midcap membership'),
-    ],source='IWV',returns=performance.get('IWB'),subtitle='IWV holdings matched to IWB; may omit constituents')
-    r2000 = branch('r2000','Russell 2000 · IWM mapped','segment',by_sector(russell_small,cache,'IWV','r2000'),source='IWV',returns=performance.get('IWM'),subtitle='IWV holdings matched to IWM; sampled holdings')
+    # Merge disjoint IWB / IWM ETF portfolio holdings to reduce sampling gaps
+    # in IWV. Fund weights are kept separate and never added across sources.
+    big_tickers={r['ticker'] for r in iwb}
+    russell_big=list(iwb)
+    russell_small=[r for r in iwm if r['ticker'] not in big_tickers]
+    union_tickers=big_tickers | {r['ticker'] for r in russell_small}
+    remainder=[r for r in iwv if r['ticker'] not in union_tickers]
+    # The Top 200 is a portfolio-position rank, not official index membership.
+    sorted_big=sorted(russell_big,key=lambda r:-(r.get('holding_value') or 0))
+    top200, midrest=sorted_big[:200], sorted_big[200:]
+    r1000=branch('r1000','Russell 1000 · IWB holdings proxy','segment',[
+        branch('top200','Largest 200 · estimated','segment',by_sector(top200,cache,'IWB','top200'),source='IWB',subtitle='Holdings rank, not official Top 200 index membership'),
+        branch('midcap','Remaining Russell 1000 proxy','segment',by_sector(midrest,cache,'IWB','midcap'),source='IWB',subtitle='Not official Russell Midcap membership'),
+    ],source='IWB',returns=performance.get('IWB'),subtitle='IWB ETF holdings, not licensed Russell membership')
+    r2000=branch('r2000','Russell 2000 · IWM holdings proxy','segment',by_sector(russell_small,cache,'IWM','r2000'),source='IWM',returns=performance.get('IWM'),subtitle='IWM ETF holdings; IWB overlap removed')
     ussegments=[r1000,r2000]
     if remainder:
-        ussegments.append(branch('unmapped','Unmapped IWV holdings','segment',by_sector(remainder,cache,'IWV','unmapped'),source='IWV',subtitle='Holdings outside IWB/IWM ETF overlap; not an extra Russell index'))
-    r3000=branch('r3000','Russell 3000 · IWV proxy','benchmark',ussegments,source='IWV',returns=performance.get('IWV'),subtitle='ETF constituents, not licensed Russell 3000 membership')
+        ussegments.append(branch('unmapped','Additional IWV-only holdings','segment',by_sector(remainder,cache,'IWV','unmapped'),source='IWV',subtitle='Not in IWB/IWM ETF overlap; not an extra Russell index'))
+    r3000=branch('r3000','Russell 3000 · ETF coverage proxy','benchmark',ussegments,returns=performance.get('IWV'),subtitle='Unique IWB + IWM positions plus IWV-only extras; no official Russell membership or additive ETF weights')
     us=branch('us','United States','region',[r3000],returns=performance.get('IWV'))
     iefa=holdings['IEFA']['records']; ewc=holdings['EWC']['records']
     def countries(rows, fund):
@@ -238,11 +241,11 @@ def build(holdings, cache, performance):
         'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
         'methodology':{
             'universe':'ETF portfolio holdings as proxies, not complete or licensed index membership.',
-            'weights':'Percent of each source ETF. Values are comparable only within the same fund, not across funds.',
-            'size':'Russell 1000/2000 mapped by ETF overlaps; Top 200 is estimated by holdings market-value rank.',
+            'weights':'Percent of each source ETF. IWB, IWM and IWV have separate denominators. Do not combine across ETFs.',
+            'size':'U.S. proxy built from unique IWB and IWM holdings plus IWV-only residual. Top 200 is estimated from IWB position-size rank.',
             'industry':'Yahoo Finance metadata for companies with successful, cached enrichment; otherwise Unclassified.',
             'returns':'Yahoo Finance adjusted ETF close returns; benchmarks reflect ETF proxies, not stock-level performance.',
-            'coverage':'Funds may sample constituents; derivative/cash exposures excluded. No claim of global exhaustiveness.',
+            'coverage':'ETF holdings proxy with union/deduplication; funds may sample, have overlap, or differ from benchmarks. Not exhaustive.',
         }
     }
 
@@ -258,7 +261,8 @@ def main():
     if CACHE.exists():
         try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
         except Exception: LOG.warning('Ignoring damaged metadata cache')
-    cache, n=enrich_yfinance(holdings['IWV']['records'],cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
+    us_enrichment = holdings['IWB']['records'] + holdings['IWM']['records'] + holdings['IWV']['records']
+    cache, n=enrich_yfinance(us_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
     performance=benchmark_returns()
     data=build(holdings,cache,performance)
     count=sum(len(holdings[t]['records']) for t in ('IWV','IEFA','IEMG','EWC'))
