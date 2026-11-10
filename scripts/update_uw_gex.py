@@ -140,7 +140,7 @@ def request_json(session: requests.Session, path: str,
 def new_session() -> requests.Session:
     session = requests.Session()
     session.headers.update({
-        "Authorization": TOKEN,
+        "Authorization": "Bearer " + TOKEN.removeprefix("Bearer ").strip(),
         "Accept": "application/json",
         "User-Agent": "MARKET-DEX/Unusual-Whales-GEX/1.0",
     })
