@@ -5,10 +5,26 @@ on:
     - cron: '0 17 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
+    inputs:
+      options_detail_tickers:
+        description: 'Optional extra tickers for a separately licensed VANTA options snapshot source (example: NVDA,MSFT)'
+        required: false
+        type: string
+        default: ''
+      gex_detail_tickers:
+        description: 'Optional comma-separated tickers for detailed UW strike x expiry GEX maps (example: AAPL,MSFT,NVDA)'
+        required: false
+        type: string
+        default: ''
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/marketdex-daily.yml'
       - 'scripts/update_market_dex.py'
+      - 'scripts/update_uw_gex.py'
+      - 'scripts/update_cot_positioning.py'
+      - 'scripts/update_vanta_options.py'
       - 'scripts/requirements.txt'
 
 permissions:
@@ -45,18 +61,79 @@ jobs:
           key: marketdex-equity-history-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             marketdex-equity-history-${{ runner.os }}-
-      - name: Download and verify Russell 1000 proxy history
+      - name: Restore Unusual Whales GEX cache
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED == 'true' }}
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_gex_cache
+          key: marketdex-uw-gex-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            marketdex-uw-gex-${{ runner.os }}-
+      - name: Restore official CFTC COT history cache
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_cot_cache
+          key: marketdex-cot-futures-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            marketdex-cot-futures-${{ runner.os }}-
+      - name: Restore authorized options-snapshot cache
+        if: ${{ vars.VANTA_OPTIONS_PUBLICATION_APPROVED == 'true' }}
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_options_cache
+          key: vanta-licensed-options-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            vanta-licensed-options-${{ runner.os }}-
+      - name: Download and verify Russell 3000 proxy history
         env:
           MARKETDEX_PERIOD: 5y
           MARKETDEX_BATCH_SIZE: '18'
           MARKETDEX_RETRIES: '1'
           MARKETDEX_PAUSE: '0.6'
         run: python scripts/update_market_dex.py
+      - name: Refresh optional Unusual Whales GEX universe and detailed maps
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED == 'true' }}
+        env:
+          UW_TOKEN: ${{ secrets.UW_TOKEN }}
+          MARKETDEX_UW_GEX_DETAIL_TICKERS: ${{ github.event.inputs.gex_detail_tickers || '' }}
+          MARKETDEX_UW_GEX_DETAIL_LIMIT: '12'
+          MARKETDEX_UW_GEX_DETAIL_MAX_TICKERS: '40'
+          MARKETDEX_UW_GEX_DETAIL_MAX_DTE: '60'
+          MARKETDEX_UW_GEX_STRIKE_RANGE: '0.20'
+          MARKETDEX_UW_GEX_PAUSE: '0.20'
+          MARKETDEX_UW_GEX_MAX_PAGES: '100'
+        run: python scripts/update_uw_gex.py
+        continue-on-error: true
+      - name: Refresh official CFTC futures positioning (TFF and Disaggregated)
+        env:
+          MARKETDEX_COT_HISTORY_WEEKS: '70'
+          MARKETDEX_COT_MAX_MARKETS: '240'
+        run: python scripts/update_cot_positioning.py
+        continue-on-error: true
+      - name: Test licensed VANTA options publisher (offline; no credentials)
+        run: python scripts/tests/test_vanta_options.py
+      - name: Refresh optionally licensed VANTA ticker options snapshots
+        env:
+          VANTA_OPTIONS_PUBLICATION_APPROVED: ${{ vars.VANTA_OPTIONS_PUBLICATION_APPROVED || 'false' }}
+          VANTA_OPTIONS_SOURCE_URL_TEMPLATE: ${{ vars.VANTA_OPTIONS_SOURCE_URL_TEMPLATE || '' }}
+          VANTA_OPTIONS_SOURCE_TOKEN: ${{ secrets.VANTA_OPTIONS_SOURCE_TOKEN }}
+          VANTA_OPTIONS_EXTRA_TICKERS: ${{ github.event.inputs.options_detail_tickers || '' }}
+          VANTA_OPTIONS_MAX_SYMBOLS: '60'
+          VANTA_OPTIONS_MAX_EXPIRIES: '6'
+          VANTA_OPTIONS_PAUSE: '0.2'
+        run: python scripts/update_vanta_options.py
+        continue-on-error: true
+      - name: Exclude unlicensed VANTA options snapshots from public Pages
+        if: ${{ vars.VANTA_OPTIONS_PUBLICATION_APPROVED != 'true' }}
+        run: rm -rf data/options/tickers data/options/manifest.json
+      - name: Exclude Unusual Whales data without written public-redistribution rights
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED != 'true' }}
+        run: rm -rf data/gex
       - name: Prepare static data website
         run: |
           mkdir -p public/data
           cp -R data/. public/data/
-          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a></body></html>' > public/index.html
+          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a> · <a href="data/positioning/index.json">CFTC futures positioning</a> · <a href="data/options/status.json">VANTA options feed status</a></body></html>' > public/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload market snapshots
