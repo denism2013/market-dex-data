@@ -12,6 +12,8 @@ on:
         type: string
         default: ''
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/marketdex-daily.yml'
       - 'scripts/update_market_dex.py'
