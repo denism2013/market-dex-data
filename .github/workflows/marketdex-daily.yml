@@ -5,10 +5,17 @@ on:
     - cron: '0 17 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
+    inputs:
+      gex_detail_tickers:
+        description: 'Optional comma-separated tickers for detailed UW strike x expiry GEX maps (example: AAPL,MSFT,NVDA)'
+        required: false
+        type: string
+        default: ''
   push:
     paths:
       - '.github/workflows/marketdex-daily.yml'
       - 'scripts/update_market_dex.py'
+      - 'scripts/update_uw_gex.py'
       - 'scripts/requirements.txt'
 
 permissions:
@@ -45,18 +52,37 @@ jobs:
           key: marketdex-equity-history-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             marketdex-equity-history-${{ runner.os }}-
-      - name: Download and verify Russell 1000 proxy history
+      - name: Restore Unusual Whales GEX cache
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_gex_cache
+          key: marketdex-uw-gex-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            marketdex-uw-gex-${{ runner.os }}-
+      - name: Download and verify Russell 3000 proxy history
         env:
           MARKETDEX_PERIOD: 5y
           MARKETDEX_BATCH_SIZE: '18'
           MARKETDEX_RETRIES: '1'
           MARKETDEX_PAUSE: '0.6'
         run: python scripts/update_market_dex.py
+      - name: Refresh optional Unusual Whales GEX universe and detailed maps
+        env:
+          UW_TOKEN: ${{ secrets.UW_TOKEN }}
+          MARKETDEX_UW_GEX_DETAIL_TICKERS: ${{ github.event.inputs.gex_detail_tickers || '' }}
+          MARKETDEX_UW_GEX_DETAIL_LIMIT: '12'
+          MARKETDEX_UW_GEX_DETAIL_MAX_TICKERS: '40'
+          MARKETDEX_UW_GEX_DETAIL_MAX_DTE: '60'
+          MARKETDEX_UW_GEX_STRIKE_RANGE: '0.20'
+          MARKETDEX_UW_GEX_PAUSE: '0.20'
+          MARKETDEX_UW_GEX_MAX_PAGES: '100'
+        run: python scripts/update_uw_gex.py
+        continue-on-error: true
       - name: Prepare static data website
         run: |
           mkdir -p public/data
           cp -R data/. public/data/
-          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a></body></html>' > public/index.html
+          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a> · <a href="data/gex/universe.json">Unusual Whales GEX universe</a></body></html>' > public/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload market snapshots
