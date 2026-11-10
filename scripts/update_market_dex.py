@@ -28,7 +28,11 @@ except ImportError:
 BASE = Path(__file__).resolve().parents[1]
 DATA = BASE / "data"
 CACHE = Path(os.environ.get("MARKETDEX_CACHE_DIR", str(BASE / ".marketdex_cache")))
-HOLDINGS_URL = "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/latest-holdings.csv"
+HOLDINGS_URLS = [
+    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/1395165510754.ajax?fileType=csv&fileName=IWB_holdings&dataType=fund",
+    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/1467271812596.ajax?fileType=csv&fileName=IWB_holdings&dataType=fund",
+    "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf/latest-holdings.csv",
+]
 PUBLISHED_UNIVERSE_URL = "https://denism2013.github.io/market-dex-data/data/universe.json"
 VALID = re.compile(r"^[A-Z0-9.^=_-]{1,24}$")
 CORE = [
@@ -95,15 +99,22 @@ def discover_universe() -> tuple[list[dict], str, str]:
             "2026-11-09",
             "DETERMINISTIC TEST",
         )
+    last_error = None
+    for holdings_url in HOLDINGS_URLS:
+        try:
+            r = requests.get(
+                holdings_url, timeout=35,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; market-research/1.0)",
+                         "Accept": "text/csv,text/plain,*/*"},
+            )
+            r.raise_for_status()
+            members, asof = parse_holdings(r.text)
+            return members, asof, "iShares IWB published fund holdings (Russell 1000 proxy)"
+        except Exception as exc:
+            last_error = exc
+            print("IWB source variant unavailable:", str(exc)[:160], flush=True)
     try:
-        r = requests.get(
-            HOLDINGS_URL, timeout=40,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; market-research/1.0)",
-                     "Accept": "text/csv,text/plain,*/*"},
-        )
-        r.raise_for_status()
-        members, asof = parse_holdings(r.text)
-        return members, asof, "iShares IWB published fund holdings (Russell 1000 proxy)"
+        raise RuntimeError("All IWB holdings endpoint variants unavailable") from last_error
     except Exception as exc:
         print("IWB source temporarily unavailable:", str(exc)[:240], flush=True)
         try:
