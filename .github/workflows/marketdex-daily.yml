@@ -18,6 +18,7 @@ on:
       - '.github/workflows/marketdex-daily.yml'
       - 'scripts/update_market_dex.py'
       - 'scripts/update_uw_gex.py'
+      - 'scripts/update_cot_positioning.py'
       - 'scripts/requirements.txt'
 
 permissions:
@@ -55,12 +56,20 @@ jobs:
           restore-keys: |
             marketdex-equity-history-${{ runner.os }}-
       - name: Restore Unusual Whales GEX cache
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED == 'true' }}
         uses: actions/cache@v4
         with:
           path: .marketdex_gex_cache
           key: marketdex-uw-gex-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             marketdex-uw-gex-${{ runner.os }}-
+      - name: Restore official CFTC COT history cache
+        uses: actions/cache@v4
+        with:
+          path: .marketdex_cot_cache
+          key: marketdex-cot-futures-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            marketdex-cot-futures-${{ runner.os }}-
       - name: Download and verify Russell 3000 proxy history
         env:
           MARKETDEX_PERIOD: 5y
@@ -69,6 +78,7 @@ jobs:
           MARKETDEX_PAUSE: '0.6'
         run: python scripts/update_market_dex.py
       - name: Refresh optional Unusual Whales GEX universe and detailed maps
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED == 'true' }}
         env:
           UW_TOKEN: ${{ secrets.UW_TOKEN }}
           MARKETDEX_UW_GEX_DETAIL_TICKERS: ${{ github.event.inputs.gex_detail_tickers || '' }}
@@ -80,11 +90,20 @@ jobs:
           MARKETDEX_UW_GEX_MAX_PAGES: '100'
         run: python scripts/update_uw_gex.py
         continue-on-error: true
+      - name: Refresh official CFTC futures positioning (TFF and Disaggregated)
+        env:
+          MARKETDEX_COT_HISTORY_WEEKS: '70'
+          MARKETDEX_COT_MAX_MARKETS: '240'
+        run: python scripts/update_cot_positioning.py
+        continue-on-error: true
+      - name: Exclude Unusual Whales data without written public-redistribution rights
+        if: ${{ vars.UW_PUBLIC_REDISTRIBUTION_APPROVED != 'true' }}
+        run: rm -rf data/gex
       - name: Prepare static data website
         run: |
           mkdir -p public/data
           cp -R data/. public/data/
-          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a> · <a href="data/gex/universe.json">Unusual Whales GEX universe</a></body></html>' > public/index.html
+          printf '%s\n' '<!doctype html><html><body style="font-family:system-ui;background:#071322;color:#e2fbff;padding:3rem"><h1>MARKET-DEX Data</h1><p>Daily equity OHLCV snapshots · 5 PM ET weekdays</p><a href="data/latest.zip">Default index ZIP</a> · <a href="data/universe.json">Universe index</a> · <a href="data/positioning/index.json">CFTC futures positioning</a></body></html>' > public/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload market snapshots
