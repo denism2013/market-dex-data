@@ -6,8 +6,9 @@ on:
       - 'scripts/orbital_update_data.py'
   workflow_dispatch:
   schedule:
-    # 22:20 UTC = 5:20pm EST / 6:20pm EDT; NY-close postprocessing, not exactly 5pm local year-round.
-    - cron: '20 22 * * 1-5'
+    # Weekdays at 5:20 PM in New York, with automatic DST handling.
+    - cron: '20 17 * * 1-5'
+      timezone: 'America/New_York'
 permissions:
   contents: write
 concurrency:
