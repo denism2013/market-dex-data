@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-MODULE=Path(__file__).resolve().parents[1]/'scripts'/'update_cot_positioning.py'
+MODULE=Path(__file__).resolve().parents[2]/'scripts'/'update_cot_positioning.py'
 spec=importlib.util.spec_from_file_location('cot_update',MODULE)
 cot=importlib.util.module_from_spec(spec)
 sys.modules[spec.name]=cot
