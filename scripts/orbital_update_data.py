@@ -26,6 +26,9 @@ FUNDS = {
     'IEFA': ('244049', 'ishares-core-msci-eafe-etf'),
     'IEMG': ('244050', 'ishares-core-msci-emerging-markets-etf'),
     'EWC': ('239615', 'ishares-msci-canada-etf'),
+    # Single worldwide denominator for indicative market weights; the ACWI fund
+    # tracks large/mid caps and does NOT fully cover small-cap or frontier stocks.
+    'ACWI': ('239600', 'ishares-msci-acwi-etf'),
 }
 LOG = logging.getLogger('orbital')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -279,6 +282,92 @@ def weight_tiers(rows,cache,source,idprefix):
             for key,title,members in specs if members]
 
 
+def normalized_country(country):
+    aliases={'South Korea':'Korea (South)','Korea, Republic of':'Korea (South)',
+             'UK':'United Kingdom','Türkiye':'Turkey','Czechia':'Czech Republic',
+             'UAE':'United Arab Emirates'}
+    return aliases.get(str(country or '').strip(),str(country or '').strip())
+
+
+def add_global_weights(root, holdings):
+    """Use ONE common ACWI ETF equity sleeve as an *indicative* global denominator.
+
+    Do not sum unrelated IWB/IWM/IEFA/IEMG portfolio weights or confuse holding
+    count with issuer capitalization. For countries absent from the ACWI basket,
+    leave worldWeight null instead of inventing market exposure.
+    """
+    basket=(holdings.get('ACWI') or {}).get('records') or []
+    country_raw=defaultdict(float)
+    for row in basket:
+        w=row.get('weight')
+        if isinstance(w,(float,int)) and math.isfinite(w) and w>0:
+            country_raw[normalized_country(row['country'])]+=w
+    total=sum(country_raw.values())
+    if total<80 or len(country_raw)<20:
+        return {'available':False,'source':'ACWI','reason':'global equity anchor unavailable or incomplete',
+                'countries_anchored':0,'mapped_share_pct':None}
+    cw={country:100*value/total for country,value in country_raw.items()}
+    def tag(node,amount):
+        if amount is None or not math.isfinite(amount) or amount<0:return
+        node['worldWeight']=round(amount,7)
+    def allocate(node,amount):
+        tag(node,amount)
+        children=node.get('children') or []
+        if not children:return
+        denom=sum(max(0,c.get('weight') or 0) for c in children)
+        if denom>0:
+            for c in children:
+                w=max(0,c.get('weight') or 0)
+                allocate(c,amount*w/denom)
+        elif len(children)==1:
+            allocate(children[0],amount)
+        # No comparable denominators: don't fabricate a cross-source allocation.
+    def summarize(node):
+        for child in node.get('children') or []:summarize(child)
+        if node.get('kind') in ('continent','galaxy'):
+            child_amounts=[c.get('worldWeight') for c in node.get('children') or []]
+            valid=[x for x in child_amounts if isinstance(x,(int,float))]
+            if valid:tag(node,sum(valid))
+    us,dev,em,gap=root['children']
+    usshare=cw.get('United States')
+    if usshare is not None:
+        tag(us,usshare);market=us['children'][0];tag(market,usshare)
+        # Derive Russell family allocation from IWV positions, a *single* U.S.
+        # fund denominator. Relative positions inside IWB/IWM still use the
+        # respective fund's weights, never the fund's total dollar AUM.
+        iwb={r['ticker'] for r in holdings['IWB']['records']}
+        iwm={r['ticker'] for r in holdings['IWM']['records'] if r['ticker'] not in iwb}
+        parts={'IWB':0.,'IWM':0.,'IWV':0.}
+        for r in holdings['IWV']['records']:
+            ticker=r['ticker'];w=max(0,r.get('weight') or 0)
+            bucket='IWB' if ticker in iwb else 'IWM' if ticker in iwm else 'IWV'
+            parts[bucket]+=w
+        denom=sum(parts.values())
+        if denom>0:
+            for segment in market['children']:
+                source=segment.get('source')
+                if source in parts:allocate(segment,usshare*parts[source]/denom)
+    covered=0
+    for realm in (dev,em):
+        for region in realm['children']:
+            for country in region['children']:
+                w=cw.get(normalized_country(country['name']))
+                if w is not None:
+                    allocate(country,w);covered+=1
+    summarize(dev);summarize(em)
+    tag(root,100.)
+    mapped_share=sum(x.get('worldWeight') or 0 for x in (us,dev,em))
+    return {'available':True,'source':'ACWI','asof':holdings['ACWI'].get('asof'),
+            'weight_basis':'Single ACWI ETF equity portfolio; indicative large/mid-cap global proxy, not market capitalizations',
+            'countries_anchored':covered+(1 if usshare is not None else 0),
+            'reference_countries':len(cw),
+            'mapped_share_pct':round(mapped_share,2),
+            'unmapped_share_pct':round(max(0,100-mapped_share),2),
+            'us_pct':round(usshare,2) if usshare is not None else None,
+            'developed_ex_us_pct':round(dev.get('worldWeight'),2) if isinstance(dev.get('worldWeight'),(int,float)) else None,
+            'emerging_pct':round(em.get('worldWeight'),2) if isinstance(em.get('worldWeight'),(int,float)) else None}
+
+
 def build(holdings, cache, performance):
     # One authoritative place for each stock within a realm. Never sum fund-level
     # portfolio weights from distinct source ETFs into a fictional global weight.
@@ -332,6 +421,7 @@ def build(holdings, cache, performance):
         out=[]
         for child in node.get('children',[]):out.extend(collect(child))
         return out
+    global_anchor=add_global_weights(root,holdings)
     stocks=collect(root)
     n_industry=sum(bool(x.get('industry')) for x in stocks)
     n_cap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
@@ -339,6 +429,7 @@ def build(holdings, cache, performance):
     realm_counts={n['id']:len(collect(n)) for n in root['children']}
     quality={
       'mapped_security_nodes':len(stocks),
+      'global_weighting':global_anchor,
       'unique_security_ids':len({(x.get('country'),x.get('ticker')) for x in stocks}),
       'country_count':len(countries),
       'industry_classified_nodes':n_industry,
@@ -357,11 +448,11 @@ def build(holdings, cache, performance):
       'root':root,'quality':quality,
       'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
       'methodology':{
-       'world':'The three investable realms are derived from IWB, IWM, IWV, IEFA, EWC, IEMG ETF portfolio holdings. Frontier is an explicit data gap. Not the universe of all listed companies.',
+       'world':'Holdings mapped from IWB, IWM, IWV, IEFA, EWC, IEMG. ACWI is an optional global *weighting anchor* only, not added as duplicate securities. ACWI large/mid-cap exposure is not a full all-cap global market census.',
        'classification':'Developed versus emerging uses the ETF/MSCI mandates; geographic region is a display grouping. Classification can differ from FTSE Russell.',
        'country':'Countries use holdings Location; not country of revenue, listing or issuer domicile necessarily.',
-       'size':'Country holding tiers are rank percentiles of allocation within one ETF and one country; NOT large/mid/small capitalizations. Where Yahoo market capitalization exists it is displayed on the security only.',
-       'weights':'Source ETF weight denominator only. No composite global weighting or cross-fund sum.',
+       'size':'Country holding tiers are rank percentiles of allocation within one ETF and one country, NOT issuer market-cap classifications. worldWeight uses a single global ETF proxy and is not verified issuer capitalization. Galaxy radius is a visual square-root scale with legibility floors.',
+       'weights':'worldWeight uses a single ACWI ETF portfolio equity-sleeve denominator (large/mid-cap weighted proxy), with all other node weights allocated within their own funds; weight is always original ETF-local. Null worldWeight means unverified/unmatched.',
        'sector':'Sector reported by iShares holdings, not necessarily full current GICS industry hierarchy.',
        'industry':'Optional Yahoo industry (not official GICS subindustry) or issuer-provided industry; unclassified names retained.',
        'returns':'ETF adjusted-close returns where Yahoo Finance data succeeds; not individual-stock returns.',
@@ -376,7 +467,11 @@ def main():
     session.headers.update({'User-Agent':'Mozilla/5.0 (compatible; ORBITAL-Research/1.0; holdings analysis)'})
     holdings={}
     for fund in FUNDS:
-        holdings[fund]=load_fund(session,fund)
+        try: holdings[fund]=load_fund(session,fund)
+        except Exception as exc:
+            if fund=='ACWI':
+                LOG.warning('Global ACWI weighting anchor not available; publishing holdings WITHOUT world shares: %s',str(exc)[:180])
+            else: raise
     cache={}
     if CACHE.exists():
         try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
@@ -404,13 +499,10 @@ def main():
     data=build(holdings,cache,performance)
     count=data['quality']['mapped_security_nodes']
     if count<4000 or data['quality']['country_count']<25: raise RuntimeError(f'Refusing incomplete global snapshot ({count} positions, {data["quality"]["country_count"]} countries)')
+    LOG.info('Global weighting anchor: %s',data['quality']['global_weighting'])
     OUT.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     CACHE.write_text(json.dumps(cache,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     LOG.info('Wrote %s (%s bytes), %s mapped equity positions across global realms, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
-
-
-
-
 
 if __name__ == "__main__":
     main()
