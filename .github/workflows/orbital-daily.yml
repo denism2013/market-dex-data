@@ -32,25 +32,32 @@ jobs:
           ORBITAL_YF_MAX: '70'
         run: python scripts/orbital_update_data.py
       - name: Publish validated snapshot only
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/orbital-market-universe.json data/orbital-company-metadata.json
-          if git diff --cached --quiet; then
-            echo 'ORBITAL data already current'
-            exit 0
-          fi
-          git commit -m 'data: refresh ORBITAL market universe'
-          # Other jobs and user commits may land while fetching the ETFs.
-          # Rebase just the ORBITAL data commit, then retry without force-push.
-          for attempt in 1 2 3 4; do
+          # Preserve the validated generated files across remote-state refreshes.
+          # No force-push and no change to MARKET-DEX/VANTA source files.
+          mkdir -p /tmp/orbital-snapshot
+          cp data/orbital-market-universe.json /tmp/orbital-snapshot/
+          cp data/orbital-company-metadata.json /tmp/orbital-snapshot/
+          for attempt in 1 2 3 4 5; do
             git fetch origin main
-            git rebase origin/main
+            git reset --hard origin/main
+            cp /tmp/orbital-snapshot/orbital-market-universe.json data/
+            cp /tmp/orbital-snapshot/orbital-company-metadata.json data/
+            git add data/orbital-market-universe.json data/orbital-company-metadata.json
+            if git diff --cached --quiet; then
+              echo 'ORBITAL snapshot already current'
+              exit 0
+            fi
+            git commit -m 'data: refresh ORBITAL market universe'
             if git push origin HEAD:main; then
-              echo 'Published ORBITAL snapshot'
+              echo 'Published ORBITAL snapshot successfully'
               exit 0
             fi
             sleep $((attempt * 3))
           done
-          echo 'Snapshot publication failed after 4 safe retries' >&2
+          echo 'ORBITAL publication failed after safe retries' >&2
           exit 1
