@@ -105,6 +105,8 @@ def load_fund(session, fund):
                         'weight':w,
                         'holding_value':round(mv,2),
                         'exchange':str(row.get('Exchange') or '').strip(),
+                        'isin':str(row.get('ISIN') or '').strip(),
+                        'sedol':str(row.get('SEDOL') or '').strip(),
                         'fund_industry':str(row.get('Industry') or row.get('Sub-Industry') or '').strip()[:90],
                     })
                 if len(records) < (60 if fund == 'EWC' else 500):
@@ -231,7 +233,8 @@ def leaf(row, ticker_cache, fund, returns):
         'sector':row['sector'],'industry':meta.get('industry') or row.get('fund_industry') or None,
         'weight':row['weight'],'marketCap':meta.get('market_cap'),
         'pe':meta.get('trailing_pe'), 'marketCapCurrency':meta.get('currency'), 'country':row['country'],
-        'exchange':row['exchange'], 'returns':None,
+        'exchange':row['exchange'], 'isin':row.get('isin') or None,
+        'sedol':row.get('sedol') or None, 'returns':None,
         'source':fund,
     }
 
@@ -321,11 +324,11 @@ def add_global_weights(root, holdings):
     basket=(holdings.get('ACWI') or {}).get('records') or []
     country_raw=defaultdict(float)
     for row in basket:
-        w=row.get('weight')
-        if isinstance(w,(float,int)) and math.isfinite(w) and w>0:
-            country_raw[normalized_country(row['country'])]+=w
+        v=row.get('holding_value')
+        if isinstance(v,(float,int)) and math.isfinite(v) and v>0:
+            country_raw[normalized_country(row['country'])]+=v
     total=sum(country_raw.values())
-    if total<80 or len(country_raw)<20:
+    if total<=0 or len(country_raw)<20:
         return {'available':False,'source':'ACWI','reason':'global equity anchor unavailable or incomplete',
                 'countries_anchored':0,'mapped_share_pct':None}
     cw={country:100*value/total for country,value in country_raw.items()}
@@ -396,7 +399,7 @@ def add_global_weights(root, holdings):
     if mapped_share>100.03:
         raise RuntimeError(f'Invalid global market shares: {mapped_share:.3f}% exceeds the 100% ACWI anchor')
     return {'available':True,'source':'ACWI','asof':holdings['ACWI'].get('asof'),
-            'weight_basis':'Single ACWI ETF equity portfolio; indicative large/mid-cap global proxy, not market capitalizations',
+            'weight_basis':'Single ACWI ETF equity-sleeve USD market values; indicative large/mid-cap global proxy, not issuer market capitalizations',
             'countries_anchored':covered+(1 if usshare is not None else 0),
             'reference_countries':len(cw),
             'mapped_share_pct':round(mapped_share,2),
@@ -479,6 +482,10 @@ def build(holdings, cache, performance):
       'etf_source_holdings':{f:len(h['records']) for f,h in holdings.items()},
       'official_index_membership':False,
       'frontier_constituent_coverage':False,
+      'listed_equities_exhaustive':False,
+      'size_tiers_are_verified_market_cap':False,
+      'acwi_reference_method':'ACWI equity holding values (USD), not fund size or sum of unrelated ETF allocations',
+      'security_id_field':'ISIN where available; country/exchange/ticker otherwise',
       'warning':'ETF holdings are a sampled investable proxy, not the total worldwide listed-equity universe. Country tiers are ETF allocation ranks, not issuer market-cap segments.',
     }
     return {
@@ -490,7 +497,7 @@ def build(holdings, cache, performance):
        'classification':'Developed versus emerging uses the ETF/MSCI mandates; geographic region is a display grouping. Classification can differ from FTSE Russell.',
        'country':'Countries use holdings Location; not country of revenue, listing or issuer domicile necessarily.',
        'size':'Country holding tiers are rank percentiles of allocation within one ETF and one country, NOT issuer market-cap classifications. worldWeight uses a single global ETF proxy and is not verified issuer capitalization. Galaxy radius is a visual square-root scale with legibility floors.',
-       'weights':'worldWeight uses a single ACWI ETF portfolio equity-sleeve denominator (large/mid-cap weighted proxy), with all other node weights allocated within their own funds; weight is always original ETF-local. Null worldWeight means unverified/unmatched.',
+       'weights':'worldWeight uses one ACWI ETF equity-sleeve USD market-value denominator; deeper nodes allocate that share using their local source ETF weights, not issuer free-float market capitalizations. Other weight remains ETF-local; null means unknown.',
        'sector':'Sector reported by iShares holdings, not necessarily full current GICS industry hierarchy.',
        'industry':'Optional Yahoo industry (not official GICS subindustry) or issuer-provided industry; unclassified names retained.',
        'returns':'ETF adjusted-close returns where Yahoo Finance data succeeds; not individual-stock returns.',
