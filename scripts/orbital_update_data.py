@@ -42,6 +42,27 @@ def fnum(value, default=None):
         return default
 
 
+def ensure_weight_coverage(records, fund):
+    """Reconstruct missing ETF portfolio weights from the fund's position market values.
+
+    This produces ETF equity-sleeve percentages, NOT issuer market capitalizations.
+    """
+    if not records:
+        return records
+    missing = sum(r.get('weight') is None for r in records)
+    if missing / len(records) < 0.75:
+        return records
+    total = sum((r.get('holding_value') or 0.0) for r in records)
+    if total <= 0 or not math.isfinite(total):
+        LOG.warning('%s: holdings weights missing and portfolio values unavailable', fund)
+        return records
+    for r in records:
+        value = r.get('holding_value')
+        r['weight'] = round(100.0 * value / total, 8) if value is not None and value >= 0 else None
+    LOG.warning('%s: restored %s holding weights from ETF equity market values (NOT issuer capitalization)', fund, missing)
+    return records
+
+
 def clean_ticker(raw):
     s = str(raw or '').strip().upper()
     if not s or s in {'-', 'N/A', 'CASH', 'USD'}: return ''
@@ -88,6 +109,7 @@ def load_fund(session, fund):
                     })
                 if len(records) < (60 if fund == 'EWC' else 500):
                     raise ValueError(f'Suspicious count {len(records)}; refusing to publish incomplete holdings')
+                records = ensure_weight_coverage(records, fund)
                 LOG.info('%s: %s equity securities as of %s', fund, len(records), asof)
                 return {'fund':fund,'asof':asof,'source_url':url,'records':records}
             except Exception as exc:
