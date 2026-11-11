@@ -5,7 +5,6 @@ Usage: python scripts/orbital_update_data.py
 Writes data/orbital-market-universe.json and data/orbital-company-metadata.json.
 Fund holdings are NOT official index member lists. Do not redistribute Yahoo data in violation of its terms.
 """
-from __future__ import annotations
 import csv, io, json, logging, math, os, random, time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -16,7 +15,7 @@ try:
 except ImportError as e:
     raise SystemExit('Install requests and yfinance: pip install requests yfinance') from e
 
-BASE = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == 'scripts' else Path(__file__).resolve().parent
+BASE = Path.cwd()  # Colab's /content, or current working directory
 OUT = BASE / 'data' / 'orbital-market-universe.json'
 CACHE = BASE / 'data' / 'orbital-company-metadata.json'
 # Explicit official iShares URLs. Holdings may be sampled and differ from benchmark membership.
@@ -113,7 +112,10 @@ def enrich_yfinance(rows, cache, max_queries=85):
     dated = [t for t in tickers if t in cache and t not in uncached]
     rng = random.Random(day)
     rng.shuffle(dated)
-    selection = (uncached[:max_queries//2] + dated[:max_queries//2])[:max_queries]
+    # Use the entire quota for as-yet unclassified companies first; reserve only
+    # 10% for stale-cache refreshing once the cache is well populated.
+    refresh_quota = min(len(dated), max(1, max_queries // 10)) if len(uncached) < max_queries else 0
+    selection = (uncached[:max_queries-refresh_quota] + dated[:refresh_quota])[:max_queries]
     updated = 0
     for idx, ticker in enumerate(selection):
         try:
@@ -201,14 +203,18 @@ def by_sector(rows, cache, source, idprefix):
 
 def build(holdings, cache, performance):
     iwv = holdings['IWV']['records']; iwb = holdings['IWB']['records']; iwm = holdings['IWM']['records']
-    # Merge disjoint IWB / IWM ETF portfolio holdings to reduce sampling gaps
-    # in IWV. Fund weights are kept separate and never added across sources.
+    # Combine *distinct* Russell 1000 / Russell 2000 ETF security holdings to
+    # broaden market coverage beyond IWV's sampling. Securities from each ETF
+    # retain their own source-specific holding weights; never add these weights
+    # across IWB, IWM and IWV as though they shared a denominator.
     big_tickers={r['ticker'] for r in iwb}
+    small_tickers={r['ticker'] for r in iwm}
     russell_big=list(iwb)
     russell_small=[r for r in iwm if r['ticker'] not in big_tickers]
-    union_tickers=big_tickers | {r['ticker'] for r in russell_small}
+    union_tickers=big_tickers | small_tickers
     remainder=[r for r in iwv if r['ticker'] not in union_tickers]
-    # The Top 200 is a portfolio-position rank, not official index membership.
+    # Top-200 partition is ranked by ETF position market value only; this is
+    # approximate and is NOT official FTSE Russell Top 200 membership.
     sorted_big=sorted(russell_big,key=lambda r:-(r.get('holding_value') or 0))
     top200, midrest=sorted_big[:200], sorted_big[200:]
     r1000=branch('r1000','Russell 1000 · IWB holdings proxy','segment',[
@@ -235,7 +241,32 @@ def build(holdings, cache, performance):
         branch('iemg','MSCI EM IMI · IEMG proxy','benchmark',countries(iemg,'IEMG'),source='IEMG',returns=performance.get('IEMG'),subtitle='Broad EM ETF holdings; not an exhaustive EM market list')
     ],returns=performance.get('IEMG'))
     root=branch('global','Global equity universe','universe',[us,developed,emerging],subtitle='Three geographic realms. Sources not globally cap-weighted or directly additive.')
+    # Report the actual classification coverage. A full holdings universe is NOT
+    # the same as complete industry/valuation coverage.
+    def collect(node):
+        if node.get('kind')=='stock': return [node]
+        result=[]
+        for child in node.get('children',[]): result.extend(collect(child))
+        return result
+    stocks=collect(root)
+    nindustry=sum(bool(x.get('industry')) for x in stocks)
+    ncap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
+    nquote=sum(bool(x.get('returns')) for x in stocks)
+    bysource={f:len(h['records']) for f,h in holdings.items()}
+    quality={
+        'mapped_security_nodes':len(stocks),
+        'unique_security_ids':len({(x.get('source'),x.get('ticker')) for x in stocks}),
+        'industry_classified_nodes':nindustry,
+        'industry_coverage_pct':round(100*nindustry/max(1,len(stocks)),1),
+        'market_cap_nodes':ncap,
+        'market_cap_coverage_pct':round(100*ncap/max(1,len(stocks)),1),
+        'stock_return_nodes':nquote,
+        'etf_source_holdings':bysource,
+        'official_index_membership':False,
+        'warning':'Market holdings coverage does not imply complete industry, stock returns, fundamentals, or licensed index membership.',
+    }
     return {
+        'quality':quality,
         'schema':'orbital-v1','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'mode':'holdings-proxy', 'root':root,
         'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
@@ -261,6 +292,20 @@ def main():
     if CACHE.exists():
         try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
         except Exception: LOG.warning('Ignoring damaged metadata cache')
+    # A fresh Colab runtime otherwise starts from zero industry mappings every run.
+    # Reuse previously published, non-secret Yahoo metadata when no local cache exists.
+    # Failure is harmless; the stock universe still builds from the current holdings.
+    if not cache:
+        try:
+            url='https://raw.githubusercontent.com/denism2013/market-dex-data/main/data/orbital-company-metadata.json'
+            response=session.get(url, timeout=12)
+            response.raise_for_status()
+            published=response.json()
+            if isinstance(published,dict):
+                cache={str(k):v for k,v in published.items() if isinstance(v,dict)}
+                LOG.info('Reused %d previously published company metadata records',len(cache))
+        except Exception as exc:
+            LOG.warning('Published metadata unavailable; rebuilding gradually (%s)',str(exc)[:120])
     us_enrichment = holdings['IWB']['records'] + holdings['IWM']['records'] + holdings['IWV']['records']
     cache, n=enrich_yfinance(us_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
     performance=benchmark_returns()
@@ -271,4 +316,6 @@ def main():
     CACHE.write_text(json.dumps(cache,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     LOG.info('Wrote %s (%s bytes), approx %s holdings across non-overlapping sources, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
 
-if __name__=='__main__': main()
+
+if __name__ == "__main__":
+    main()
