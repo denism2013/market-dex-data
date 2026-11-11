@@ -579,16 +579,32 @@ def add_global_weights(root, holdings):
             for segment in market['children']:
                 source=segment.get('source')
                 if source in parts:allocate(segment,usshare*parts[source]/denom)
-    covered=0
+    # ETF source holdings may include cross-listed or off-mandate securities.
+    # A single country's ACWI market share must NEVER be counted twice.
+    # Attribute the country to the realm with the broadest mapped constituent
+    # coverage. The minority off-mandate country node stays visible, unweighted.
+    candidate_owners={}
+    all_country_nodes=[]
     for realm in (dev,em):
         for region in realm['children']:
             for country in region['children']:
-                w=cw.get(normalized_country(country['name']))
-                if w is not None:
-                    allocate(country,w);covered+=1
+                key=normalized_country(country['name'])
+                def leaf_count(n):
+                    return 1 if n.get('kind')=='stock' else sum(leaf_count(x) for x in n.get('children',[]))
+                count=leaf_count(country)
+                all_country_nodes.append((country,key,count))
+                if key not in candidate_owners or count>candidate_owners[key][1]:
+                    candidate_owners[key]=(country,count)
+    covered=0
+    for country,key,count in all_country_nodes:
+        if candidate_owners[key][0] is not country:continue
+        w=cw.get(key)
+        if w is not None:allocate(country,w);covered+=1
     summarize(dev);summarize(em)
     tag(root,100.)
     mapped_share=sum(x.get('worldWeight') or 0 for x in (us,dev,em))
+    if mapped_share>100.03:
+        raise RuntimeError(f'Invalid global market shares: {mapped_share:.3f}% exceeds the 100% ACWI anchor')
     return {'available':True,'source':'ACWI','asof':holdings['ACWI'].get('asof'),
             'weight_basis':'Single ACWI ETF equity portfolio; indicative large/mid-cap global proxy, not market capitalizations',
             'countries_anchored':covered+(1 if usshare is not None else 0),
