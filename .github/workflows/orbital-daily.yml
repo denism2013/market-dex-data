@@ -36,4 +36,21 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/orbital-market-universe.json data/orbital-company-metadata.json
-          git diff --cached --quiet || (git commit -m 'data: refresh ORBITAL market universe' && git push)
+          if git diff --cached --quiet; then
+            echo 'ORBITAL data already current'
+            exit 0
+          fi
+          git commit -m 'data: refresh ORBITAL market universe'
+          # Other jobs and user commits may land while fetching the ETFs.
+          # Rebase just the ORBITAL data commit, then retry without force-push.
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo 'Published ORBITAL snapshot'
+              exit 0
+            fi
+            sleep $((attempt * 3))
+          done
+          echo 'Snapshot publication failed after 4 safe retries' >&2
+          exit 1
