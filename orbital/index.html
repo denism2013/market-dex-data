@@ -142,7 +142,8 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
   <div class="lab-head"><div><div class="micro" style="color:#7de5ff">MISSION OPERATIONS / 03</div><h2>ORBITAL <span style="color:#8ee4ff">DATA LAB</span></h2><p>One universe. Two update routes. Full control over the snapshot you see.</p></div><button class="icon-btn" id="closeDataLab" aria-label="Close Data Lab">×</button></div>
   <div class="lab-toolbar"><div class="lab-mode"><i></i><span id="labStatusText">Checking source · initial data preview</span></div><div class="micro" id="labDateText">SNAPSHOT · NONE</div></div>
   <div class="lab-tabs" role="tablist" aria-label="Data workflow"><button class="active" role="tab" aria-selected="true" id="tabAuto" data-page="auto">01 / LIVE SYNC</button><button role="tab" aria-selected="false" id="tabImport" data-page="import">02 / IMPORT FILE</button><button role="tab" aria-selected="false" id="tabColab" data-page="colab">03 / GOOGLE COLAB</button></div>
-  <section class="lab-page" id="labAuto" role="tabpanel"><h3>Automatic market-universe feed</h3><p>ORBITAL reads the newest published GitHub snapshot when opened. It uses six ETF holdings sources and optional Yahoo Finance enrichment. Refreshing from this panel intentionally replaces an imported snapshot only after a successful download.</p>
+  <div id="labCoverage" role="status" aria-live="polite" style="font:11px/1.6 monospace;color:#8bd1fb;padding:10px 17px;background:#06182b;border-bottom:1px solid #244a66">DEMO STRUCTURE · NO LIVE HOLDINGS OR QUOTES</div>
+  <section class="lab-page" id="labAuto" role="tabpanel"><h3>Automatic market-universe feed</h3><p>ORBITAL reads the newest published GitHub snapshot when opened. It uses six ETF holdings sources and rate-limited Yahoo Finance enrichment (not complete company fundamentals). Refreshing from this panel intentionally replaces an imported snapshot only after a successful download.</p>
    <div class="lab-split"><div class="lab-card"><span class="micro">CURRENT SOURCE</span><strong id="labModeValue">Visual preview</strong><p id="labLastUpdate">No dated source loaded.</p></div><div class="lab-card"><span class="micro">PUBLISHED SOURCE</span><strong>GitHub / ORBITAL</strong><p>Separate daily GitHub Actions updater. Market holdings and generated metadata have as-of timestamps.</p></div></div>
    <div class="lab-actions"><button class="solidbtn" id="labFetchNow">↻ &nbsp; LOAD LATEST GITHUB DATA</button><button class="outlinebtn" id="labExport">EXPORT ACTIVE JSON</button></div><div class="lab-callout">The app does not execute Python in your browser. When network access is unavailable or data is stale, it retains your last usable snapshot and identifies its source.</div>
   </section>
@@ -163,12 +164,12 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
 <div id="progress" class="progress-line"></div>
 <script type="text/plain" id="colabSource"># ORBITAL | One-cell Google Colab updater — identical ETF universe engine to GitHub.
 # Paste this COMPLETE code into ONE Google Colab code cell, then click Run.
-# Output: data/orbital-market-universe.json (a complete, directly importable snapshot).
+# Output: data/orbital-market-universe.json (importable holdings snapshot; full metadata NOT guaranteed).
 # Data: current iShares IWV/IWB/IWM/IEFA/IEMG/EWC holdings + optional yfinance.
 # No paid data key, GitHub token, or account connection required.
 # Uses free public ETF HOLDINGS PROXIES, not official index membership.
 import os, sys, subprocess
-os.environ.setdefault('ORBITAL_YF_MAX', '50')  # metadata requests per run; lower if Yahoo limits
+os.environ.setdefault('ORBITAL_YF_MAX', '100')  # per-run metadata enrichment budget; lower if Yahoo limits
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', 'requests>=2.31', 'yfinance>=0.2.40'])
 
 #!/usr/bin/env python3
@@ -285,7 +286,10 @@ def enrich_yfinance(rows, cache, max_queries=85):
     dated = [t for t in tickers if t in cache and t not in uncached]
     rng = random.Random(day)
     rng.shuffle(dated)
-    selection = (uncached[:max_queries//2] + dated[:max_queries//2])[:max_queries]
+    # Use the entire quota for as-yet unclassified companies first; reserve only
+    # 10% for stale-cache refreshing once the cache is well populated.
+    refresh_quota = min(len(dated), max(1, max_queries // 10)) if len(uncached) < max_queries else 0
+    selection = (uncached[:max_queries-refresh_quota] + dated[:refresh_quota])[:max_queries]
     updated = 0
     for idx, ticker in enumerate(selection):
         try:
@@ -411,7 +415,32 @@ def build(holdings, cache, performance):
         branch('iemg','MSCI EM IMI · IEMG proxy','benchmark',countries(iemg,'IEMG'),source='IEMG',returns=performance.get('IEMG'),subtitle='Broad EM ETF holdings; not an exhaustive EM market list')
     ],returns=performance.get('IEMG'))
     root=branch('global','Global equity universe','universe',[us,developed,emerging],subtitle='Three geographic realms. Sources not globally cap-weighted or directly additive.')
+    # Report the actual classification coverage. A full holdings universe is NOT
+    # the same as complete industry/valuation coverage.
+    def collect(node):
+        if node.get('kind')=='stock': return [node]
+        result=[]
+        for child in node.get('children',[]): result.extend(collect(child))
+        return result
+    stocks=collect(root)
+    nindustry=sum(bool(x.get('industry')) for x in stocks)
+    ncap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
+    nquote=sum(bool(x.get('returns')) for x in stocks)
+    bysource={f:len(h['records']) for f,h in holdings.items()}
+    quality={
+        'mapped_security_nodes':len(stocks),
+        'unique_security_ids':len({(x.get('source'),x.get('ticker')) for x in stocks}),
+        'industry_classified_nodes':nindustry,
+        'industry_coverage_pct':round(100*nindustry/max(1,len(stocks)),1),
+        'market_cap_nodes':ncap,
+        'market_cap_coverage_pct':round(100*ncap/max(1,len(stocks)),1),
+        'stock_return_nodes':nquote,
+        'etf_source_holdings':bysource,
+        'official_index_membership':False,
+        'warning':'Market holdings coverage does not imply complete industry, stock returns, fundamentals, or licensed index membership.',
+    }
     return {
+        'quality':quality,
         'schema':'orbital-v1','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'mode':'holdings-proxy', 'root':root,
         'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
@@ -437,6 +466,20 @@ def main():
     if CACHE.exists():
         try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
         except Exception: LOG.warning('Ignoring damaged metadata cache')
+    # A fresh Colab runtime otherwise starts from zero industry mappings every run.
+    # Reuse previously published, non-secret Yahoo metadata when no local cache exists.
+    # Failure is harmless; the stock universe still builds from the current holdings.
+    if not cache:
+        try:
+            url='https://raw.githubusercontent.com/denism2013/market-dex-data/main/data/orbital-company-metadata.json'
+            response=session.get(url, timeout=12)
+            response.raise_for_status()
+            published=response.json()
+            if isinstance(published,dict):
+                cache={str(k):v for k,v in published.items() if isinstance(v,dict)}
+                LOG.info('Reused %d previously published company metadata records',len(cache))
+        except Exception as exc:
+            LOG.warning('Published metadata unavailable; rebuilding gradually (%s)',str(exc)[:120])
     us_enrichment = holdings['IWB']['records'] + holdings['IWM']['records'] + holdings['IWV']['records']
     cache, n=enrich_yfinance(us_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
     performance=benchmark_returns()
@@ -707,6 +750,12 @@ function syncDataLab(){
  const name=!live?'STRUCTURE PREVIEW':manual?'MANUAL SNAPSHOT':'GITHUB SNAPSHOT';
  $('labModeValue').textContent=name;$('labStatusText').textContent=name+(live?' · '+fmt(dataset.root?._count)+' mapped securities':' · no prices implied');
  $('labDateText').textContent=last?'AS OF '+new Date(last).toLocaleString():'UNDATED PREVIEW';
+ const qa=dataset?.quality;
+ const classified=qa?qa.industry_classified_nodes:all.filter(n=>n.kind==='stock'&&n.industry).length;
+ const stocks=qa?qa.mapped_security_nodes:dataset.root?._count||0;
+ const coverage=stocks?Math.round(1000*classified/stocks)/10:0;
+ $('labCoverage').textContent=live?('STOCK NODES '+fmt(stocks)+'  ·  INDUSTRY CLASSIFIED '+fmt(classified)+' ('+coverage.toFixed(1)+'%)  ·  UNCLASSIFIED '+fmt(Math.max(0,stocks-classified))+'  ·  OFFICIAL INDEX MEMBERSHIP: NO'):'DEMO STRUCTURE · NO LIVE HOLDINGS OR QUOTES';
+ $('labCoverage').style.color=live&&coverage<50?'#ffb77e':'#8bd1fb';
  $('labLastUpdate').textContent=last?'Created '+new Date(last).toLocaleString()+' · '+Object.keys(dataset.sources||{}).length+' source ETFs.':'An updated holdings file has not been imported.';
 }
 function labTab(which){for(const pg of ['auto','import','colab']){const tab=$('tab'+pg[0].toUpperCase()+pg.slice(1)),page=$('lab'+pg[0].toUpperCase()+pg.slice(1));const active=pg===which;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));page.hidden=!active}if(which==='colab'&&!$('codePreview').textContent)$('codePreview').textContent=$('colabSource').textContent}
@@ -721,7 +770,7 @@ async function importOrbitFile(file){
   const parsed=verify(JSON.parse(await file.text()));
   if(parsed.mode!=='holdings-proxy')throw Error('Import requires a source-backed ORBITAL holdings-proxy file');
   loadSnapshot(parsed,true,'manual');
-  $('importFeedback').textContent='IMPORTED · '+file.name+' · '+fmt(dataset.root._count)+' company nodes · '+(dataset.generated_at||'undated');
+  $('importFeedback').textContent='IMPORTED · '+file.name+' · '+fmt(dataset.root._count)+' stock nodes · '+(dataset.generated_at||'undated')+(dataset.root._count<4000?' · WARNING: INCOMPLETE SNAPSHOT':'');
   toast('MANUAL SNAPSHOT ACTIVE · '+file.name);
   closeDataLab();$('modalShade').classList.remove('show');
  }catch(err){$('importFeedback').textContent='IMPORT FAILED · '+err.message;toast('IMPORT FAILED · '+err.message);console.warn('ORBITAL manual import:',err)}
