@@ -112,6 +112,31 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
 .data-lab .icon-btn{flex:0 0 36px}.code-head{flex-wrap:wrap;gap:5px}.code-head span{overflow-wrap:anywhere}
 @media(max-width:760px){#dataLabToggle{min-width:31px;padding:0 7px;font-size:14px}#dataLabToggle .btnlabel{display:none}#dataLabShade{padding:8px;align-items:center}.data-lab{max-height:95dvh;border-radius:9px}.lab-head{padding:17px 15px 13px}.lab-toolbar{padding:0 15px}.lab-tabs{padding:11px 12px 0;gap:2px}.lab-tabs button{padding:10px 10px;font-size:9px}.lab-page{padding:18px 14px 22px}.lab-split{grid-template-columns:1fr}.lab-steps{grid-template-columns:1fr}.lab-step{display:flex;gap:10px;align-items:center}.lab-step b{margin-bottom:0;flex:0 0 22px}.lab-step strong{margin:0}.lab-page h3{font-size:19px}.lab-actions button{flex:1;min-width:145px}#codePreview{height:210px;font-size:10px}.lab-mode{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.planet-orb,.planet-orb::after{animation:none}}
+
+
+/* ORBITAL GLOBAL ATLAS v3 — region-coded stellar navigation */
+:root{--us:#65d6ff;--developed:#c2a4ff;--emerging:#f6bc83;--frontier:#ac8fa7}
+#cosmos{background:radial-gradient(ellipse at 47% 50%,#111f38 0%,#08122b 29%,#030a1c 58%,#01030b 100%)}
+#cosmos::before{opacity:.65;animation:atlasDrift 45s ease-in-out infinite alternate}
+#aurora{filter:saturate(1.45) hue-rotate(-8deg);opacity:.8}
+#nebulaSurface{filter:saturate(1.43) contrast(1.08)}
+#cinemaFX{filter:saturate(1.17);opacity:.84}
+.scenehead .eyebrow{color:#9ed4ed;letter-spacing:.26em}
+.scenehead h1{text-shadow:0 2px 32px rgba(32,113,196,.28)}
+#atlasCoverage{display:flex;justify-content:center;align-items:center;gap:11px;flex-wrap:wrap;margin-top:13px}
+#atlasCoverage span{display:inline-flex;gap:6px;align-items:center;font:9px 'Space Mono',monospace;letter-spacing:.05em;color:#b9cfec;background:linear-gradient(135deg,#0b1b33c9,#0a1430aa);border:1px solid #7aadd13b;border-radius:14px;padding:5px 9px;box-shadow:0 6px 18px #0005}
+#atlasCoverage strong{color:#eaf8ff;font-weight:700}
+#atlasCoverage span:first-child{border-color:#68cbfa65}
+.node-label{border-radius:9px;border:1px solid #b5dfff50;border-left:2px solid var(--node-color,#8dd8ff);box-shadow:0 12px 28px #000a,0 0 18px color-mix(in srgb,var(--node-color,#8dd8ff) 18%,transparent);backdrop-filter:blur(12px);transition:opacity .25s,box-shadow .25s,transform .25s,background .25s}
+.node-label:focus-visible,.systemcard:focus-visible{outline:2px solid #bbf3ff;outline-offset:3px}
+.systemcard{border-radius:8px;background:linear-gradient(120deg,#112543dd,#07152acc);transition:transform .2s ease,border-color .2s ease}
+.systemcard:hover{transform:translateY(-5px);border-color:var(--card-color,#8bdfff)}
+.planet-orb{box-shadow:inset -18px -12px 32px rgba(0,0,0,.72),inset 6px 5px 18px #ffffff20,0 0 22px color-mix(in srgb,var(--node-color) 45%,transparent)}
+#warp{backdrop-filter:blur(0);background:radial-gradient(ellipse at center,#75dafe08 4%,#153e7866 27%,#0c1c4da6 53%,#000e 95%)}
+#warp.active{backdrop-filter:blur(3px)}
+@keyframes atlasDrift{0%{transform:translate3d(-2%,2%,0) scale(1)}100%{transform:translate3d(3%,-1%,0) scale(1.07)}}
+@media(max-width:760px){#atlasCoverage{gap:5px;margin-top:7px}#atlasCoverage span{font-size:8px;padding:4px 6px}.scenehead h1{font-size:clamp(18px,5vw,26px)}#cinemaFX{opacity:.62}}
+@media(prefers-reduced-motion:reduce){#cosmos::before{animation:none}}
 </style>
 </head>
 <body>
@@ -125,9 +150,9 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
 </header>
 <div class="content">
  <aside class="leftpanel" id="leftpanel"><div class="panelpad"><div class="micro">01 / UNIVERSE NAVIGATOR</div><div class="crumbs" id="crumbs"></div><div class="divider"></div><div class="micro">CURRENT ORBIT</div><div class="panelhead" id="navTitle">Global Equities</div><div class="small dim" id="navSubtitle">Travel through the market's fundamental structure.</div><div class="divider"></div><div class="micro">DISCOVER NEXT</div><div class="nav-list" id="navList"></div><div class="mini-legend" id="coverageNote">Structure preview. Data sources will be checked when you open the file.</div></div></aside>
- <div class="scenehead"><div class="eyebrow" id="sceneTag">SECTOR 00 // ALL MARKETS</div><h1 id="sceneTitle">The Global <span>Universe</span></h1><p id="sceneSub">CHOOSE A GALAXY TO BEGIN EXPLORING</p></div>
+ <div class="scenehead"><div class="eyebrow" id="sceneTag">SECTOR 00 // ALL MARKETS</div><h1 id="sceneTitle">The Global <span>Universe</span></h1><p id="sceneSub">CHOOSE A GALAXY TO BEGIN EXPLORING</p><div id="atlasCoverage" aria-label="Global coverage"><span><strong id="atlasCountryCount">—</strong> MARKETS</span><span><strong id="atlasStocksCount">—</strong> EQUITIES</span><span id="atlasAtlasStatus">PROXY-BASED WORLD MAP</span></div></div>
  <div class="node-layer" id="nodeLayer"></div>
- <aside class="rightpanel" id="rightpanel"><div class="panelpad"><div class="micro">02 / MARKET INTELLIGENCE</div><div class="panelhead" id="infoTitle">Universe overview</div><div class="small dim" id="infoSubtitle">Choose any luminous market cluster to travel deeper.</div><div class="statgrid"><div class="stat"><div class="caption">VISIBLE SYSTEMS</div><div class="number" id="metricSystems">3</div></div><div class="stat"><div class="caption">MAPPED SECURITIES</div><div class="number" id="metricSecurities">—</div></div><div class="stat"><div class="caption">SOURCE WEIGHT</div><div class="number" id="metricWeight">—</div></div><div class="stat"><div class="caption">ETF RETURN</div><div class="number" id="metricReturn">—</div></div></div><div class="divider"></div><div class="micro">RELATIVE STRUCTURE</div><div id="breakdown"></div><div class="divider"></div><div class="micro">SIGNAL ANALYSIS</div><p class="small dim" id="analysisText">A structural view of the world equity market, built from source-traceable market proxies.</p><button class="outlinebtn" id="exploreBtn" style="width:100%;margin-top:8px">ENTER SELECTED SYSTEM →</button></div></aside>
+ <aside class="rightpanel" id="rightpanel"><div class="panelpad"><div class="micro">02 / MARKET INTELLIGENCE</div><div class="panelhead" id="infoTitle">Universe overview</div><div class="small dim" id="infoSubtitle">Choose any luminous market cluster to travel deeper.</div><div class="statgrid"><div class="stat"><div class="caption">VISIBLE SYSTEMS</div><div class="number" id="metricSystems">4</div></div><div class="stat"><div class="caption">MAPPED SECURITIES</div><div class="number" id="metricSecurities">—</div></div><div class="stat"><div class="caption">SOURCE WEIGHT</div><div class="number" id="metricWeight">—</div></div><div class="stat"><div class="caption">ETF RETURN</div><div class="number" id="metricReturn">—</div></div></div><div class="divider"></div><div class="micro">RELATIVE STRUCTURE</div><div id="breakdown"></div><div class="divider"></div><div class="micro">SIGNAL ANALYSIS</div><p class="small dim" id="analysisText">A structural view of the world equity market, built from source-traceable market proxies.</p><button class="outlinebtn" id="exploreBtn" style="width:100%;margin-top:8px">ENTER SELECTED SYSTEM →</button></div></aside>
  <div class="floatleft" role="group" aria-label="Visualization mode"><button id="structureMode" class="active">STRUCTURE</button><button id="returnMode">1D RETURN</button><button id="cinematicMode">AUTO ORBIT · ON</button><button id="effectsMode" title="Cycle visual quality: Ultra / Eco / Off">FX · ULTRA</button></div>
  <div class="corner-coordinates" id="coordinates">ROTATION 00.00 / ZOOM 1.00</div>
 </div>
@@ -139,7 +164,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
 
 <div id="dataLabShade" role="dialog" aria-modal="true" aria-label="ORBITAL Data Lab">
  <div class="data-lab">
-  <div class="lab-head"><div><div class="micro" style="color:#7de5ff">MISSION OPERATIONS / 03</div><h2>ORBITAL <span style="color:#8ee4ff">DATA LAB</span></h2><p>One universe. Two update routes. Full control over the snapshot you see.</p></div><button class="icon-btn" id="closeDataLab" aria-label="Close Data Lab">×</button></div>
+  <div class="lab-head"><div><div class="micro" style="color:#7de5ff">MISSION OPERATIONS / 03</div><h2>ORBITAL <span style="color:#8ee4ff">DATA LAB</span></h2><p>Worldwide equities, by region and country. Automatic GitHub sync or manual Colab import.</p></div><button class="icon-btn" id="closeDataLab" aria-label="Close Data Lab">×</button></div>
   <div class="lab-toolbar"><div class="lab-mode"><i></i><span id="labStatusText">Checking source · initial data preview</span></div><div class="micro" id="labDateText">SNAPSHOT · NONE</div></div>
   <div class="lab-tabs" role="tablist" aria-label="Data workflow"><button class="active" role="tab" aria-selected="true" id="tabAuto" data-page="auto">01 / LIVE SYNC</button><button role="tab" aria-selected="false" id="tabImport" data-page="import">02 / IMPORT FILE</button><button role="tab" aria-selected="false" id="tabColab" data-page="colab">03 / GOOGLE COLAB</button></div>
   <div id="labCoverage" role="status" aria-live="polite" style="font:11px/1.6 monospace;color:#8bd1fb;padding:10px 17px;background:#06182b;border-bottom:1px solid #244a66">DEMO STRUCTURE · NO LIVE HOLDINGS OR QUOTES</div>
@@ -153,7 +178,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
    <div class="lab-actions"><button class="solidbtn" id="labChooseFile">CHOOSE JSON FILE</button><button class="outlinebtn" id="labImportAuto">RETURN TO AUTOMATIC FEED</button></div>
    <div class="lab-callout" id="importFeedback" role="status">Manual files are parsed locally in this browser. They are not sent to the server. A successful import remains selected across reloads in browsers that permit local storage.</div>
   </section>
-  <section class="lab-page" id="labColab" role="tabpanel" hidden><h3>Google Colab · complete one-cell Python</h3><p>Run the same holdings-building logic as the GitHub updater, entirely from Google Colab. No API keys or subscription required. It downloads a ready-to-import <b>orbital-market-universe.json</b>.</p>
+  <section class="lab-page" id="labColab" role="tabpanel" hidden><h3>Google Colab · complete one-cell Python</h3><p>Run the same holdings-building logic as the GitHub updater, entirely from Google Colab. No paid API key required. It downloads a ready-to-import <b>orbital-market-universe.json</b>.</p>
    <div class="lab-steps"><div class="lab-step"><b>1</b><div><strong>Open Colab</strong>Create a notebook on Google's free Colab service.</div></div><div class="lab-step"><b>2</b><div><strong>Copy & run</strong>Paste the complete code into one cell and run it.</div></div><div class="lab-step"><b>3</b><div><strong>Load data</strong>Import the downloaded JSON using the previous tab.</div></div></div>
    <div class="lab-actions"><button class="solidbtn" id="copyColab">COPY COMPLETE COLAB CODE</button><button class="outlinebtn" id="downloadColab">DOWNLOAD .PY</button><button class="outlinebtn" id="openColab">OPEN GOOGLE COLAB ↗</button></div>
    <div class="code-shell"><div class="code-head"><span>ORBITAL_COLAB_ONE_CELL.py</span><span>FULL DATA BUILDER · COPYABLE</span></div><pre id="codePreview" tabindex="0" aria-label="Complete one-cell Colab Python source"></pre></div>
@@ -162,18 +187,16 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas
  </div>
 </div>
 <div id="progress" class="progress-line"></div>
-<script type="text/plain" id="colabSource"># ORBITAL | One-cell Google Colab updater — identical ETF universe engine to GitHub.
-# Paste this COMPLETE code into ONE Google Colab code cell, then click Run.
-# Output: data/orbital-market-universe.json (importable holdings snapshot; full metadata NOT guaranteed).
-# Data: current iShares IWV/IWB/IWM/IEFA/IEMG/EWC holdings + optional yfinance.
-# No paid data key, GitHub token, or account connection required.
-# Uses free public ETF HOLDINGS PROXIES, not official index membership.
+<script type="text/plain" id="colabSource"># ORBITAL GLOBAL ATLAS | Complete Google Colab one-cell global equity builder
+# Source: public ETF holdings (U.S. + developed ex-U.S. + emerging) and best-effort yfinance.
+# This is NOT the exhaustive global listed-company database nor licensed index membership.
+# Paste everything into ONE cell; the generated JSON downloads into your browser.
 import os, sys, subprocess
-os.environ.setdefault('ORBITAL_YF_MAX', '100')  # per-run metadata enrichment budget; lower if Yahoo limits
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', 'requests>=2.31', 'yfinance>=0.2.40'])
+os.environ.setdefault('ORBITAL_YF_MAX','120')
+subprocess.check_call([sys.executable,'-m','pip','install','-q','requests>=2.31','yfinance>=0.2.40'])
 
 #!/usr/bin/env python3
-"""ORBITAL: source-traceable market universe snapshot from public iShares holdings + optional yfinance.
+"""ORBITAL GLOBAL ATLAS: source-traceable world equity market mapping from ETF holdings + optional Yahoo metadata.
 
 Usage: python scripts/orbital_update_data.py
 Writes data/orbital-market-universe.json and data/orbital-company-metadata.json.
@@ -255,6 +278,7 @@ def load_fund(session, fund):
                         'weight':w,
                         'holding_value':round(mv,2),
                         'exchange':str(row.get('Exchange') or '').strip(),
+                        'fund_industry':str(row.get('Industry') or row.get('Sub-Industry') or '').strip()[:90],
                     })
                 if len(records) < (60 if fund == 'EWC' else 500):
                     raise ValueError(f'Suspicious count {len(records)}; refusing to publish incomplete holdings')
@@ -266,50 +290,84 @@ def load_fund(session, fund):
     raise RuntimeError('Failed to fetch '+fund+'; '+ ' | '.join(errors[-5:]))
 
 
-def enrich_yfinance(rows, cache, max_queries=85):
-    """Rate-limited, rotating metadata refresh. No invented data when unavailable.
-    Quotes for every security are not practical via free, unauthenticated Yahoo APIs.
-    Use the ticker cache to spread coverage over many daily runs.
+def cache_key(row):
+    """Avoid false metadata joins when international tickers coincide with US tickers."""
+    return row['ticker'] if row['country']=='United States' else row['country']+'|'+row['ticker']
+
+
+def yahoo_symbol(row):
+    """Exchange-qualified symbols only where exchange notation is unambiguous.
+
+    Reject unknown international symbols instead of silently returning a US namesake.
+    Yahoo symbols and sector labels are not a licensed global security master.
     """
-    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return cache, 0
-    try:
-        import yfinance as yf
+    symbol=row['ticker']
+    if row['country']=='United States': return symbol
+    exchange=(row.get('exchange') or '').lower()
+    pairs=[
+      (('tokyo','japan'),'.T'),(('london','united kingdom'),'.L'),
+      (('xetra','germany'),'.DE'),(('frankfurt',),'.F'),
+      (('paris',),'.PA'),(('amsterdam',),'.AS'),(('milan','borsa italiana'),'.MI'),
+      (('madrid',),'.MC'),(('zurich','six swiss'),'.SW'),
+      (('hong kong',),'.HK'),(('shanghai',),'.SS'),(('shenzhen',),'.SZ'),
+      (('national stock exchange of india',),'.NS'),(('bombay',),'.BO'),
+      (('taiwan stock',),'.TW'),(('taipei',),'.TWO'),
+      (('korea exchange',),'.KS'),(('kosdaq',),'.KQ'),
+      (('australian',),'.AX'),(('toronto',),'.TO'),(('tsx venture',),'.V'),
+      (('bovespa','sao paulo'),'.SA'),(('johannesburg',),'.JO'),
+      (('singapore',),'.SI'),(('oslo',),'.OL'),(('stockholm',),'.ST'),
+      (('copenhagen',),'.CO'),(('helsinki',),'.HE'),(('brussels',),'.BR'),
+      (('mexico',),'.MX'),(('new zealand',),'.NZ'),(('tel aviv',),'.TA'),
+      (('istanbul',),'.IS'),(('warsaw',),'.WA'),(('vienna',),'.VI'),
+    ]
+    for labels,suffix in pairs:
+        if any(token in exchange for token in labels):return symbol+suffix
+    return None
+
+
+def enrich_yfinance(rows, cache, max_queries=85):
+    """Across-region, cached best-effort metadata; no assumption of full coverage."""
+    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return cache,0
+    try: import yfinance as yf
     except ImportError:
-        LOG.warning('yfinance unavailable; publishing ETF holdings only')
-        return cache, 0
-    tickers = list({r['ticker'] for r in rows if r['country'] == 'United States'})
-    priority = sorted(rows, key=lambda r: r.get('holding_value') or 0, reverse=True)
-    priority = [r['ticker'] for r in priority if r['country'] == 'United States']
-    uncached = [t for t in dict.fromkeys(priority) if t not in cache or not cache[t].get('industry')]
-    # Refresh a small fraction of cached records each day without busting rate limits.
-    day = datetime.now(timezone.utc).timetuple().tm_yday
-    dated = [t for t in tickers if t in cache and t not in uncached]
-    rng = random.Random(day)
-    rng.shuffle(dated)
-    # Use the entire quota for as-yet unclassified companies first; reserve only
-    # 10% for stale-cache refreshing once the cache is well populated.
-    refresh_quota = min(len(dated), max(1, max_queries // 10)) if len(uncached) < max_queries else 0
-    selection = (uncached[:max_queries-refresh_quota] + dated[:refresh_quota])[:max_queries]
-    updated = 0
-    for idx, ticker in enumerate(selection):
+        LOG.warning('yfinance unavailable; ETF holdings only');return cache,0
+    by_realm={'us':[], 'developed':[], 'emerging':[]}
+    seen=set()
+    for row in sorted(rows,key=lambda r:-(r.get('holding_value') or 0)):
+        key=cache_key(row)
+        if key in seen or (cache.get(key) or {}).get('industry'):continue
+        seen.add(key)
+        yahoo=yahoo_symbol(row)
+        if not yahoo:continue
+        bucket='us' if row['country']=='United States' else ('emerging' if row.get('_fund')=='IEMG' else 'developed')
+        by_realm[bucket].append((key,yahoo,row['country']))
+    selected=[]
+    # Interleave market realms so a US mega-cap never consumes the global query budget.
+    while len(selected)<max_queries and any(by_realm.values()):
+        for realm in ('us','developed','emerging'):
+            if len(selected)>=max_queries:break
+            if by_realm[realm]:selected.append(by_realm[realm].pop(0))
+    updated=0
+    for idx,(key,symbol,country) in enumerate(selected):
         try:
-            info = yf.Ticker(ticker).get_info()
-            if not isinstance(info, dict) or not info.get('symbol'): continue
-            cache[ticker] = {
-                'industry':str(info.get('industry') or '').strip()[:80],
-                'sector':str(info.get('sector') or '').strip()[:80],
+            info=yf.Ticker(symbol).get_info()
+            if not isinstance(info,dict) or not info.get('symbol'):continue
+            cache[key]={
+                'symbol':symbol,'country':country,
+                'industry':str(info.get('industry') or '').strip()[:90],
+                'sector':str(info.get('sector') or '').strip()[:90],
                 'market_cap':fnum(info.get('marketCap')),
                 'trailing_pe':fnum(info.get('trailingPE')),
                 'forward_pe':fnum(info.get('forwardPE')),
                 'currency':str(info.get('currency') or '')[:8],
                 'updated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             }
-            updated += 1
+            updated+=1
         except Exception as exc:
-            if idx < 3: LOG.warning('Yahoo metadata unavailable for %s: %s', ticker, str(exc)[:150])
-        if idx % 20 == 0: LOG.info('Yahoo enrichment: %s/%s processed', idx+1, len(selection))
-        time.sleep(0.3)
-    return cache, updated
+            if idx<3:LOG.warning('Yahoo unavailable for %s: %s',symbol,str(exc)[:130])
+        if idx%20==0:LOG.info('Global Yahoo enrichment %s/%s processed',idx+1,len(selected))
+        time.sleep(.25)
+    return cache,updated
 
 
 def benchmark_returns():
@@ -339,12 +397,12 @@ def benchmark_returns():
 
 
 def leaf(row, ticker_cache, fund, returns):
-    meta=ticker_cache.get(row['ticker'],{})
+    meta=ticker_cache.get(cache_key(row),{})
     return {
         'id':f"{fund}-{row['ticker']}",'name':row['name'], 'kind':'stock','ticker':row['ticker'],
-        'sector':row['sector'],'industry':meta.get('industry') or None,
+        'sector':row['sector'],'industry':meta.get('industry') or row.get('fund_industry') or None,
         'weight':row['weight'],'marketCap':meta.get('market_cap'),
-        'pe':meta.get('trailing_pe'), 'country':row['country'],
+        'pe':meta.get('trailing_pe'), 'marketCapCurrency':meta.get('currency'), 'country':row['country'],
         'exchange':row['exchange'], 'returns':None,
         'source':fund,
     }
@@ -365,7 +423,7 @@ def by_sector(rows, cache, source, idprefix):
     for sector, members in sorted(sectors.items(), key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
         industries=defaultdict(list)
         for r in members:
-            industry=(cache.get(r['ticker']) or {}).get('industry') or 'Industry unclassified'
+            industry=(cache.get(cache_key(r)) or {}).get('industry') or r.get('fund_industry') or 'Industry unclassified'
             industries[industry].append(r)
         indnodes=[]
         for ind, records in sorted(industries.items(),key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
@@ -375,83 +433,137 @@ def by_sector(rows, cache, source, idprefix):
     return out
 
 
+# Geographic groupings represent navigation only, not index provider market classifications.
+# Developed/emerging realm memberships come directly from IEFA/EWC/IEMG fund mandates.
+REGION_COUNTRIES = {
+  'Europe': {'United Kingdom','UK','France','Germany','Italy','Spain','Netherlands','Switzerland','Sweden','Denmark','Norway','Finland','Belgium','Austria','Ireland','Portugal','Poland','Greece','Czech Republic','Czechia','Hungary','Romania','Turkey','Türkiye','Iceland','Luxembourg'},
+  'Asia-Pacific': {'Japan','Australia','New Zealand','Hong Kong','Singapore','South Korea','Korea (South)','Taiwan','China','India','Indonesia','Malaysia','Philippines','Thailand','Vietnam','Pakistan','Sri Lanka'},
+  'North America': {'Canada','United States','Mexico'},
+  'Latin America': {'Brazil','Chile','Colombia','Peru','Argentina'},
+  'Middle East & Africa': {'Saudi Arabia','South Africa','United Arab Emirates','UAE','Qatar','Kuwait','Israel','Egypt','Morocco','Nigeria','Bahrain','Oman','Jordan'},
+}
+COUNTRY_INDEX_CONTEXT={
+ 'Japan':'TOPIX / Nikkei 225','United Kingdom':'FTSE 100 / FTSE All-Share',
+ 'Germany':'DAX / CDAX','France':'CAC 40 / SBF 120','Canada':'S&P/TSX Composite',
+ 'Australia':'S&P/ASX 200','India':'Nifty 50 / Nifty 500','China':'CSI 300 / MSCI China',
+ 'Taiwan':'TAIEX','South Korea':'KOSPI / KOSDAQ','Korea (South)':'KOSPI / KOSDAQ',
+ 'Brazil':'Ibovespa','Mexico':'S&P/BMV IPC','Switzerland':'SMI / SPI',
+ 'Netherlands':'AEX','Spain':'IBEX 35','Italy':'FTSE MIB',
+ 'South Africa':'FTSE/JSE All Share','Saudi Arabia':'Tadawul All Share',
+ 'Singapore':'Straits Times','Hong Kong':'Hang Seng',
+}
+
+def geography(country):
+    for label,countries in REGION_COUNTRIES.items():
+        if country in countries:return label
+    return 'Other / not mapped'
+
+
+def weight_tiers(rows,cache,source,idprefix):
+    """Country-relative ETF portfolio weight ranks; NEVER label as actual cap sizes."""
+    rows=sorted(rows,key=lambda r:-(r.get('weight') or 0))
+    n=len(rows)
+    if n<=5:
+        specs=[('constituents','Country constituents · ETF proxy',rows)]
+    else:
+        h=max(1,int(math.ceil(n*.15)))
+        m=max(h+1,int(math.ceil(n*.50)))
+        specs=[('leaders','Largest allocations · top 15%',rows[:h]),
+               ('core','Core allocations · next 35%',rows[h:m]),
+               ('tail','Smaller allocations · remaining 50%',rows[m:])]
+    return [branch(idprefix+'/'+key,title,'segment',by_sector(members,cache,source,idprefix+'/'+key),
+                   source=source,subtitle='Relative position ranks WITHIN '+source+' ETF holdings for this country; NOT company market-cap classifications')
+            for key,title,members in specs if members]
+
+
 def build(holdings, cache, performance):
-    iwv = holdings['IWV']['records']; iwb = holdings['IWB']['records']; iwm = holdings['IWM']['records']
-    # Combine *distinct* Russell 1000 / Russell 2000 ETF security holdings to
-    # broaden market coverage beyond IWV's sampling. Securities from each ETF
-    # retain their own source-specific holding weights; never add these weights
-    # across IWB, IWM and IWV as though they shared a denominator.
-    big_tickers={r['ticker'] for r in iwb}
-    small_tickers={r['ticker'] for r in iwm}
-    russell_big=list(iwb)
-    russell_small=[r for r in iwm if r['ticker'] not in big_tickers]
-    union_tickers=big_tickers | small_tickers
-    remainder=[r for r in iwv if r['ticker'] not in union_tickers]
-    # Top-200 partition is ranked by ETF position market value only; this is
-    # approximate and is NOT official FTSE Russell Top 200 membership.
-    sorted_big=sorted(russell_big,key=lambda r:-(r.get('holding_value') or 0))
-    top200, midrest=sorted_big[:200], sorted_big[200:]
-    r1000=branch('r1000','Russell 1000 · IWB holdings proxy','segment',[
-        branch('top200','Largest 200 · estimated','segment',by_sector(top200,cache,'IWB','top200'),source='IWB',subtitle='Holdings rank, not official Top 200 index membership'),
-        branch('midcap','Remaining Russell 1000 proxy','segment',by_sector(midrest,cache,'IWB','midcap'),source='IWB',subtitle='Not official Russell Midcap membership'),
-    ],source='IWB',returns=performance.get('IWB'),subtitle='IWB ETF holdings, not licensed Russell membership')
-    r2000=branch('r2000','Russell 2000 · IWM holdings proxy','segment',by_sector(russell_small,cache,'IWM','r2000'),source='IWM',returns=performance.get('IWM'),subtitle='IWM ETF holdings; IWB overlap removed')
-    ussegments=[r1000,r2000]
-    if remainder:
-        ussegments.append(branch('unmapped','Additional IWV-only holdings','segment',by_sector(remainder,cache,'IWV','unmapped'),source='IWV',subtitle='Not in IWB/IWM ETF overlap; not an extra Russell index'))
-    r3000=branch('r3000','Russell 3000 · ETF coverage proxy','benchmark',ussegments,returns=performance.get('IWV'),subtitle='Unique IWB + IWM positions plus IWV-only extras; no official Russell membership or additive ETF weights')
-    us=branch('us','United States','region',[r3000],returns=performance.get('IWV'))
-    iefa=holdings['IEFA']['records']; ewc=holdings['EWC']['records']
-    def countries(rows, fund):
-        groups=defaultdict(list)
-        for r in rows: groups[r['country']].append(r)
-        return [branch(f'{fund}/{country}',country,'country',by_sector(rr,cache,fund,f'{fund}/{country}'),source=fund)
-                for country,rr in sorted(groups.items(),key=lambda pair:-sum(z.get('weight') or 0 for z in pair[1]))]
-    developed=branch('developed','Developed ex-U.S.','region',[
-        branch('iefa','MSCI EAFE IMI · IEFA proxy','benchmark',countries(iefa,'IEFA'),source='IEFA',returns=performance.get('IEFA'),subtitle='Developed excluding U.S. and Canada'),
-        branch('canada','Canada · EWC proxy','benchmark',countries(ewc,'EWC'),source='EWC',returns=performance.get('EWC'),subtitle='Country ETF, not full Canadian market'),
-    ],subtitle='Developed exposures drawn from distinct ETF sources; weights cannot be summed')
-    iemg=holdings['IEMG']['records']; emerging=branch('emerging','Emerging markets','region',[
-        branch('iemg','MSCI EM IMI · IEMG proxy','benchmark',countries(iemg,'IEMG'),source='IEMG',returns=performance.get('IEMG'),subtitle='Broad EM ETF holdings; not an exhaustive EM market list')
-    ],returns=performance.get('IEMG'))
-    root=branch('global','Global equity universe','universe',[us,developed,emerging],subtitle='Three geographic realms. Sources not globally cap-weighted or directly additive.')
-    # Report the actual classification coverage. A full holdings universe is NOT
-    # the same as complete industry/valuation coverage.
+    # One authoritative place for each stock within a realm. Never sum fund-level
+    # portfolio weights from distinct source ETFs into a fictional global weight.
+    iwv=holdings['IWV']['records'];iwb=holdings['IWB']['records'];iwm=holdings['IWM']['records']
+    big={r['ticker'] for r in iwb};small=[r for r in iwm if r['ticker'] not in big]
+    union=big|{r['ticker'] for r in small}
+    extra=[r for r in iwv if r['ticker'] not in union]
+    large=branch('us/r1000','Russell 1000 · IWB proxy','benchmark',by_sector(iwb,cache,'IWB','us/r1000'),
+                 source='IWB',returns=performance.get('IWB'),subtitle='IWB ETF portfolio proxy for the Russell 1000; exact index membership is not claimed')
+    smallnode=branch('us/r2000','Russell 2000 · IWM proxy','benchmark',by_sector(small,cache,'IWM','us/r2000'),
+                 source='IWM',returns=performance.get('IWM'),subtitle='IWM ETF holdings excluding tickers also in IWB; not the official Russell membership list')
+    uchildren=[large,smallnode]
+    if extra:
+        uchildren.append(branch('us/iwv-only','Additional IWV-only names','benchmark',by_sector(extra,cache,'IWV','us/iwv-only'),source='IWV',subtitle='IWV positions absent from IWB and IWM; excludes duplicates'))
+    us=branch('us','United States','galaxy',[
+        branch('us/r3000','Russell 3000 · ETF coverage','market',uchildren,returns=performance.get('IWV'),
+               subtitle='U.S. broad market: IWB + IWM unique holdings, with additional IWV-only names; source weights not additive')
+    ],returns=performance.get('IWV'),subtitle='One U.S. equity galaxy within the global universe, not the global organizing framework')
+
+    # Developed & emerging realms are assembled from the market-specific holdings
+    # of each fund. Region grouping is geography, while fund classification is MSCI.
+    def make_regions(items,realm):
+        # items: (source,record); each country sourced from one canonical ETF here.
+        buckets=defaultdict(lambda:defaultdict(list))
+        for fund,row in items:buckets[geography(row['country'])][(row['country'],fund)].append(row)
+        regions=[]
+        for rname,group in buckets.items():
+            countries=[]
+            for (country,fund),rows in sorted(group.items(),key=lambda a:-len(a[1])):
+                index_ref=COUNTRY_INDEX_CONTEXT.get(country)
+                subtitle=f'{fund} ETF constituents; market benchmark'+(' references (context only): '+index_ref if index_ref else ' unavailable')+'. No claim of national-index membership.'
+                country_id=realm+'/'+rname+'/'+country
+                countries.append(branch(country_id,country,'country',weight_tiers(rows,cache,fund,country_id),
+                                        source=fund,subtitle=subtitle))
+            regions.append(branch(realm+'/'+rname,rname,'continent',countries,
+                       subtitle='Geographic grouping of countries in the '+realm+' ETF proxy universe; weights across fund sources are not additive'))
+        return sorted(regions,key=lambda x:-sum(sum(1 for z in c.get('children',[])) for c in x['children']))
+
+    dmrows=[('IEFA',row) for row in holdings['IEFA']['records']]+[('EWC',row) for row in holdings['EWC']['records']]
+    dev=branch('developed','Developed international','galaxy',make_regions(dmrows,'developed'),
+               subtitle='MSCI EAFE IMI (IEFA) + Canada (EWC) country exposures; excludes the United States. These are ETF holdings proxies, not globally additive weights.')
+    emrows=[('IEMG',row) for row in holdings['IEMG']['records']]
+    emerging=branch('emerging','Emerging markets','galaxy',make_regions(emrows,'emerging'),
+                    returns=performance.get('IEMG'),subtitle='MSCI EM IMI exposures in IEMG; MSCI market categories (not FTSE Russell classifications)')
+    frontier=branch('frontier','Frontier & uncovered markets','gap',[],
+           subtitle='Not mapped: current free ETF inputs do not provide trustworthy frontier-market constituent coverage. No fictitious securities are displayed.')
+    root=branch('global','Global Equity Universe','universe',[us,dev,emerging,frontier],
+                subtitle='Worldwide equity map: U.S., developed international, emerging, plus frontier coverage gaps. Source-specific holdings are NOT worldwide market-cap weights.')
     def collect(node):
-        if node.get('kind')=='stock': return [node]
-        result=[]
-        for child in node.get('children',[]): result.extend(collect(child))
-        return result
+        if node.get('kind')=='stock':return [node]
+        out=[]
+        for child in node.get('children',[]):out.extend(collect(child))
+        return out
     stocks=collect(root)
-    nindustry=sum(bool(x.get('industry')) for x in stocks)
-    ncap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
-    nquote=sum(bool(x.get('returns')) for x in stocks)
-    bysource={f:len(h['records']) for f,h in holdings.items()}
+    n_industry=sum(bool(x.get('industry')) for x in stocks)
+    n_cap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
+    countries={x.get('country') for x in stocks if x.get('country')}
+    realm_counts={n['id']:len(collect(n)) for n in root['children']}
     quality={
-        'mapped_security_nodes':len(stocks),
-        'unique_security_ids':len({(x.get('source'),x.get('ticker')) for x in stocks}),
-        'industry_classified_nodes':nindustry,
-        'industry_coverage_pct':round(100*nindustry/max(1,len(stocks)),1),
-        'market_cap_nodes':ncap,
-        'market_cap_coverage_pct':round(100*ncap/max(1,len(stocks)),1),
-        'stock_return_nodes':nquote,
-        'etf_source_holdings':bysource,
-        'official_index_membership':False,
-        'warning':'Market holdings coverage does not imply complete industry, stock returns, fundamentals, or licensed index membership.',
+      'mapped_security_nodes':len(stocks),
+      'unique_security_ids':len({(x.get('country'),x.get('ticker')) for x in stocks}),
+      'country_count':len(countries),
+      'industry_classified_nodes':n_industry,
+      'industry_coverage_pct':round(100*n_industry/max(1,len(stocks)),1),
+      'market_cap_nodes':n_cap,
+      'market_cap_coverage_pct':round(100*n_cap/max(1,len(stocks)),1),
+      'stock_return_nodes':0,
+      'realm_security_counts':realm_counts,
+      'etf_source_holdings':{f:len(h['records']) for f,h in holdings.items()},
+      'official_index_membership':False,
+      'frontier_constituent_coverage':False,
+      'warning':'ETF holdings are a sampled investable proxy, not the total worldwide listed-equity universe. Country tiers are ETF allocation ranks, not issuer market-cap segments.',
     }
     return {
-        'quality':quality,
-        'schema':'orbital-v1','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
-        'mode':'holdings-proxy', 'root':root,
-        'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
-        'methodology':{
-            'universe':'ETF portfolio holdings as proxies, not complete or licensed index membership.',
-            'weights':'Percent of each source ETF. IWB, IWM and IWV have separate denominators. Do not combine across ETFs.',
-            'size':'U.S. proxy built from unique IWB and IWM holdings plus IWV-only residual. Top 200 is estimated from IWB position-size rank.',
-            'industry':'Yahoo Finance metadata for companies with successful, cached enrichment; otherwise Unclassified.',
-            'returns':'Yahoo Finance adjusted ETF close returns; benchmarks reflect ETF proxies, not stock-level performance.',
-            'coverage':'ETF holdings proxy with union/deduplication; funds may sample, have overlap, or differ from benchmarks. Not exhaustive.',
-        }
+      'schema':'orbital-v1','mode':'holdings-proxy','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+      'root':root,'quality':quality,
+      'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
+      'methodology':{
+       'world':'The three investable realms are derived from IWB, IWM, IWV, IEFA, EWC, IEMG ETF portfolio holdings. Frontier is an explicit data gap. Not the universe of all listed companies.',
+       'classification':'Developed versus emerging uses the ETF/MSCI mandates; geographic region is a display grouping. Classification can differ from FTSE Russell.',
+       'country':'Countries use holdings Location; not country of revenue, listing or issuer domicile necessarily.',
+       'size':'Country holding tiers are rank percentiles of allocation within one ETF and one country; NOT large/mid/small capitalizations. Where Yahoo market capitalization exists it is displayed on the security only.',
+       'weights':'Source ETF weight denominator only. No composite global weighting or cross-fund sum.',
+       'sector':'Sector reported by iShares holdings, not necessarily full current GICS industry hierarchy.',
+       'industry':'Optional Yahoo industry (not official GICS subindustry) or issuer-provided industry; unclassified names retained.',
+       'returns':'ETF adjusted-close returns where Yahoo Finance data succeeds; not individual-stock returns.',
+       'coverage':'Broad but incomplete global coverage. Some frontier markets and uninvestable/micro-cap listings excluded; Yahoo access may be rate limited.',
+      }
     }
 
 
@@ -480,24 +592,29 @@ def main():
                 LOG.info('Reused %d previously published company metadata records',len(cache))
         except Exception as exc:
             LOG.warning('Published metadata unavailable; rebuilding gradually (%s)',str(exc)[:120])
-    us_enrichment = holdings['IWB']['records'] + holdings['IWM']['records'] + holdings['IWV']['records']
-    cache, n=enrich_yfinance(us_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
+    global_enrichment=[]
+    for fund in ('IWB','IWM','IWV','IEFA','IEMG','EWC'):
+        for record in holdings[fund]['records']:
+            global_enrichment.append({**record,'_fund':fund})
+    cache, n=enrich_yfinance(global_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
     performance=benchmark_returns()
     data=build(holdings,cache,performance)
-    count=sum(len(holdings[t]['records']) for t in ('IWV','IEFA','IEMG','EWC'))
-    if count<4000: raise RuntimeError(f'Refusing incomplete combined dataset ({count} holdings)')
+    count=data['quality']['mapped_security_nodes']
+    if count<4000 or data['quality']['country_count']<25: raise RuntimeError(f'Refusing incomplete global snapshot ({count} positions, {data["quality"]["country_count"]} countries)')
     OUT.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     CACHE.write_text(json.dumps(cache,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-    LOG.info('Wrote %s (%s bytes), approx %s holdings across non-overlapping sources, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
+    LOG.info('Wrote %s (%s bytes), %s mapped equity positions across global realms, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
+
+
+
 
 main()
-
 try:
     from google.colab import files
-    print('Your ORBITAL JSON snapshot is ready. Select IMPORT JSON in ORBITAL after it downloads.')
+    print('ORBITAL Global Atlas snapshot ready. Import JSON using DATA LAB → IMPORT FILE.')
     files.download(str(OUT))
 except ImportError:
-    print('Snapshot saved to:', OUT.resolve())
+    print('Snapshot saved:',OUT.resolve())
 </script>
 <script>
 (()=>{'use strict';
@@ -505,42 +622,60 @@ const $=id=>document.getElementById(id), ESC=s=>String(s??'').replace(/[&<>"']/g
 const FEED='https://denism2013.github.io/market-dex-data/data/orbital-market-universe.json';
 const COLORS={universe:'#a8d9ff',region:'#79caff',benchmark:'#75a6f9',segment:'#91ddff',country:'#b5a4ff',sector:'#91d9f5',industry:'#ffca86',stock:'#b6f4d5'};
 const SECTORS={'Information Technology':'#74b9ff','Financials':'#7fe5d0','Health Care':'#c99bfa','Consumer Discretionary':'#ffac94','Consumer Staples':'#e3c789','Industrials':'#8fc3ed','Energy':'#ffbb6c','Materials':'#b3d68c','Utilities':'#98ace5','Real Estate':'#d5a3d5','Communication':'#a6c4ff','Communication Services':'#a6c4ff'};
-const REGIONS={'us':'#61d7ff','developed':'#ae90ff','emerging':'#ffc479'};
+const REGIONS={'us':'#5acaff','developed':'#bea0ff','emerging':'#ffc180','frontier':'#ad789e'};
 const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
 const pcent=n=>typeof n==='number'&&Number.isFinite(n)?(n>0?'+':'')+n.toFixed(2)+'%':'—';
 const weight=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(n<.1?3:2)+'%':'—';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function colorOf(n){if(n.kind==='region')return REGIONS[n.id]||'#82c9ff'; if(n.kind==='sector')return SECTORS[n.name]||'#88cddd'; if(n.kind==='stock')return SECTORS[n.sector]||'#e5e8ff';return COLORS[n.kind]||'#a7dfff'}
+function colorOf(n){
+ const realm=(n.id||'').split('/')[0];
+ if(n.kind==='galaxy'||n.kind==='gap')return REGIONS[n.id]||'#7ea9d0';
+ if(n.kind==='continent')return {'Europe':'#bcafff','Asia-Pacific':'#6de4e6','North America':'#66bcff','Latin America':'#f7ab83','Middle East & Africa':'#e2aaff'}[n.name]||REGIONS[realm]||'#a2c5ef';
+ if(n.kind==='country')return REGIONS[realm]||'#8bcfff';
+ if(n.kind==='sector')return SECTORS[n.name]||'#88cddd';
+ if(n.kind==='stock')return SECTORS[n.sector]||REGIONS[realm]||'#e5e8ff';
+ return REGIONS[realm]||COLORS[n.kind]||'#a7dfff';
+}
 function rgb(h){const s=h.replace('#','');return [parseInt(s.slice(0,2),16)/255,parseInt(s.slice(2,4),16)/255,parseInt(s.slice(4,6),16)/255]}
 function seeded(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return()=>{h+=0x6d2b79f5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function company(id,name,sector){return {id:'preview-'+id,name,kind:'stock',ticker:id,sector,weight:null,returns:null,children:[]}}
 function previewSector(id,sector,sublists){return {id:'pv-'+id,name:sector,kind:'sector',children:Object.entries(sublists).map(([ind,co])=>({id:'pv-'+id+'-'+ind,name:ind,kind:'industry',children:co.map(x=>company(x[0],x[1],sector))}))}}
 function preview(){
  const S=(id,name,k,children,subtitle='')=>({id,name,kind:k,children,subtitle,weight:null,returns:null});
- const tech=()=>previewSector('tech','Information Technology',{
-  'Semiconductors':[['NVDA','Nvidia'],['AMD','Advanced Micro Devices'],['AVGO','Broadcom'],['INTC','Intel'],['TXN','Texas Instruments'],['MU','Micron Technology']],
-  'Software':[['MSFT','Microsoft'],['CRM','Salesforce'],['ORCL','Oracle'],['ADBE','Adobe'],['CRWD','CrowdStrike']],
-  'Technology hardware':[['AAPL','Apple'],['DELL','Dell Technologies'],['HPQ','HP Inc.']]});
- const fin=()=>previewSector('fin','Financials',{'Diversified banks':[['JPM','JPMorgan Chase'],['BAC','Bank of America'],['C','Citigroup'],['WFC','Wells Fargo']],'Capital markets':[['GS','Goldman Sachs'],['MS','Morgan Stanley'],['SCHW','Charles Schwab']],'Payment networks':[['V','Visa'],['MA','Mastercard'] ]});
- const hc=()=>previewSector('hc','Health Care',{'Pharmaceuticals':[['LLY','Eli Lilly'],['JNJ','Johnson & Johnson'],['MRK','Merck'],['ABBV','AbbVie']],'Medical devices':[['ISRG','Intuitive Surgical'],['ABT','Abbott Laboratories'],['MDT','Medtronic']]});
- const energy=()=>previewSector('eng','Energy',{'Oil & gas':[['XOM','Exxon Mobil'],['CVX','Chevron'],['COP','ConocoPhillips']],'Energy services':[['SLB','SLB'],['HAL','Halliburton']]});
- const cons=()=>previewSector('cons','Consumer Discretionary',{'Retail':[['AMZN','Amazon'],['HD','Home Depot'],['LOW','Lowe’s']],'Automobiles':[['TSLA','Tesla'],['GM','General Motors'],['F','Ford']]});
- const ind=()=>previewSector('ind','Industrials',{'Aerospace & defense':[['GE','GE Aerospace'],['RTX','RTX'],['LMT','Lockheed Martin']],'Machinery':[['CAT','Caterpillar'],['DE','Deere']]});
- const r1=S('r1000','Russell 1000 · illustrative','segment',[
-   S('top200','Largest 200 · structural preview','segment',[tech(),fin(),hc(),cons(),energy(),ind()]),
-   S('midcap','Remaining large/mid · preview','segment',[tech(),fin(),hc(),ind()])
- ]);
- const r2=S('r2000','Russell 2000 · illustrative','segment',[tech(),fin(),hc(),energy(),ind()]);
- const us=S('us','United States','region',[S('r3000','Russell 3000 · proxy structure','benchmark',[r1,r2],'Not an official current index-membership list')]);
- const country=(id,name,co)=>S(id,name,'country',Object.entries(co).map(([sector,stocks])=>previewSector(id+'-'+sector,sector,{'Selected companies':stocks})));
- const dm=S('developed','Developed ex-U.S.','region',[
-  S('iefa','MSCI EAFE IMI · proxy','benchmark',[country('japan','Japan',{'Consumer Discretionary':[['TM','Toyota Motor'],['SONY','Sony Group']]}),country('netherlands','Netherlands',{'Information Technology':[['ASML','ASML Holding']]}),country('germany','Germany',{'Information Technology':[['SAP','SAP SE']],'Industrials':[['SIEGY','Siemens']]}),country('uk','United Kingdom',{'Health Care':[['AZN','AstraZeneca']],'Energy':[['SHEL','Shell']]})]),
-  S('canada','Canada · proxy','benchmark',[country('can','Canada',{'Information Technology':[['SHOP','Shopify']],'Financials':[['RY','Royal Bank of Canada']]})])
- ]);
- const em=S('emerging','Emerging markets','region',[
-  S('iemg','MSCI EM IMI · proxy','benchmark',[country('taiwan','Taiwan',{'Information Technology':[['TSM','Taiwan Semiconductor']]}),country('india','India',{'Information Technology':[['INFY','Infosys']],'Financials':[['IBN','ICICI Bank']]}),country('china','China',{'Consumer Discretionary':[['BABA','Alibaba'],['PDD','PDD Holdings']]}),country('brazil','Brazil',{'Materials':[['VALE','Vale']],'Energy':[['PBR','Petrobras']]})])
- ]);
- return {schema:'orbital-v1',mode:'illustrative-preview',generated_at:null,sources:{},root:S('global','Global Equity Universe','universe',[us,dm,em],'Illustrative structure only; sample ticker placements are not index-membership claims')};
+ const sample=(id,name,sector,industry,ticker,companyName)=>S(id,name,'country',[
+    S(id+'/holdings','ILLUSTRATIVE POSITION TIER','segment',[
+      previewSector(id+'-'+sector,sector,{[industry]:[[ticker,companyName]]})
+    ],'Demo positions, not official index membership')
+ ],'Example of the geographic and industry drill-down; preview names are illustrative, not a data feed');
+ const us=S('us','United States','galaxy',[
+  S('us/r3000','Russell 3000 · INDEX STRUCTURE EXAMPLE','market',[
+    S('us/r1000','Russell 1000','benchmark',[previewSector('us-tech','Information Technology',{'Semiconductors':[['NVDA','NVIDIA'],['AMD','Advanced Micro Devices']],'Software':[['MSFT','Microsoft']]})]),
+    S('us/r2000','Russell 2000','benchmark',[previewSector('us-small','Industrials',{'Illustrative companies':[['SMPL','Sample small-cap issuer']]})])
+  ],'Structural preview only: no licensed Russell constituent list')
+ ],'The U.S. is one of several world galaxies; Russell is its example index family');
+ const d=S('developed','Developed international','galaxy',[
+  S('developed/Europe','Europe','continent',[
+   sample('developed/Europe/United Kingdom','United Kingdom','Energy','Integrated energy','SHEL','Shell'),
+   sample('developed/Europe/Germany','Germany','Information Technology','Software','SAP','SAP SE'),
+   sample('developed/Europe/France','France','Consumer Discretionary','Luxury goods','MC','LVMH')]),
+  S('developed/Asia-Pacific','Asia-Pacific','continent',[
+   sample('developed/Asia-Pacific/Japan','Japan','Consumer Discretionary','Automobiles','7203','Toyota Motor'),
+   sample('developed/Asia-Pacific/Australia','Australia','Materials','Mining','BHP','BHP')]),
+  S('developed/North America','North America','continent',[
+   sample('developed/North America/Canada','Canada','Financials','Banks','RY','Royal Bank of Canada')])
+ ],'EAFE-style developed markets and Canada, grouped by geography; demo placements only');
+ const em=S('emerging','Emerging markets','galaxy',[
+  S('emerging/Asia-Pacific','Asia-Pacific','continent',[
+   sample('emerging/Asia-Pacific/India','India','Information Technology','IT services','INFY','Infosys'),
+   sample('emerging/Asia-Pacific/Taiwan','Taiwan','Information Technology','Semiconductors','2330','Taiwan Semiconductor'),
+   sample('emerging/Asia-Pacific/China','China','Consumer Discretionary','E-commerce','9988','Alibaba')]),
+  S('emerging/Latin America','Latin America','continent',[
+   sample('emerging/Latin America/Brazil','Brazil','Materials','Mining','VALE3','Vale')]),
+  S('emerging/Middle East & Africa','Middle East & Africa','continent',[
+   sample('emerging/Middle East & Africa/South Africa','South Africa','Financials','Banking','FSR','FirstRand')])
+ ],'MSCI emerging-markets mandate; country assignments can differ from FTSE Russell');
+ const frontier=S('frontier','Frontier & uncovered markets','gap',[],'An honest coverage boundary: no current verified frontier constituent feed; 0 represented securities');
+ return {schema:'orbital-v1',mode:'illustrative-preview',generated_at:null,sources:{},root:S('global','Global Equity Universe','universe',[us,d,em,frontier],'Demo of a WORLDWIDE market structure: geography → country → size proxy / index → sector → industry → companies. No current holdings implied.')};
 }
 let dataset=preview(), current=dataset.root, ancestors=[], selected=null, all=[], parent=new WeakMap(), live=false, mode='structure', orbit=true, paused=false, rotation=.075, pitch=-.18, distance=40, targetDistance=40, nodes=[], glScene=null, lastHover=null, renderer=null, sceneFx=null, atmosFx=null, fxQuality=(innerWidth<760?'balanced':'ultra'), fps=0, frame=0;
 function hydrate(){all=[];parent=new WeakMap();const visit=(node,p,depth)=>{if(!node||typeof node!=='object')return 0;node._depth=depth;node.children=Array.isArray(node.children)?node.children:[];if(p)parent.set(node,p);all.push(node);let count=node.kind==='stock'?1:0;for(const ch of node.children)count+=visit(ch,node,depth+1);node._count=count;return count};visit(dataset.root,null,0)}
@@ -579,18 +714,27 @@ function fly(node){if(!node)return;if(!node.children?.length){selected=node;sele
 function goHome(){current=dataset.root;ancestors=[];selected=null;renderUI();buildScene();toast('RETURNED TO GLOBAL UNIVERSE')}
 function goBack(){if(!ancestors.length){goHome();return}current=ancestors.pop();selected=null;renderUI();buildScene()}
 function goTo(node){if(!node)return;const lineage=[];let t=node;while(t&&t!==dataset.root){lineage.unshift(t);t=parent.get(t)};current=parent.get(node)||dataset.root;ancestors=[];let p=current;while(p && p!==dataset.root){ancestors.unshift(parent.get(p));p=parent.get(p)};selected=node;renderUI();buildScene();if(node.kind==='stock')toast('LOCATED '+node.ticker+' · SELECT A SYSTEM TO VIEW');}
-function nodeSubtitle(n){if(n.subtitle)return n.subtitle;if(n.kind==='universe')return 'A spatial guide to the world’s equity-market structure.';if(n.kind==='stock')return n.ticker+' · '+(n.industry||n.sector||'public equity');return ({region:'Global geographic market',benchmark:'Fund-based benchmark exposure',segment:'Capitalization segment',country:'Geographic equity subset',sector:'GICS equity sector',industry:'Industry classification'})[n.kind]||'Market constellation'}
+function nodeSubtitle(n){if(n.subtitle)return n.subtitle;if(n.kind==='universe')return 'Global equities by market classification, geography, country and sector.';if(n.kind==='stock')return n.ticker+' · '+(n.industry||n.sector||'public equity');return ({galaxy:'Global equity-market realm',continent:'World geographic region',gap:'Unmapped market coverage boundary',market:'Country index family or proxy',region:'Market region',benchmark:'ETF holdings coverage',segment:'Relative holdings-weight tier (not issuer market cap)',country:'National market coverage',sector:'Source ETF sector',industry:'Yahoo / issuer industry classification'})[n.kind]||'Market constellation'}
 function children(){return current.children?.length?current.children:[current]}
 function branchWeight(nodes){const vals=nodes.map(x=>x.weight).filter(x=>typeof x==='number');return vals.length===nodes.length&&vals.length>0?vals:null}
 function numericReturns(n){const r=n?.returns;if(r && typeof r==='object')return r[mode==='return'?'1d':'1d'];return null}
-function renderUI(){const base=current;const childrenNow=children();$('navTitle').textContent=base.name;$('navSubtitle').textContent=nodeSubtitle(base);$('sceneTag').textContent='ORBITAL / '+base.kind.toUpperCase()+' / DEPTH '+String(base._depth||0).padStart(2,'0');$('sceneTitle').innerHTML=ESC(base.name).replace(/(Universe|Markets|3000|1000|2000)$/i,'<span>$1</span>');$('sceneSub').textContent=base.children.length?'SELECT A LUMINOUS SYSTEM TO EXPLORE':'SECURITY REACHED · MARKET STRUCTURE ENDPOINT';$('infoTitle').textContent=selected?.name||base.name;$('infoSubtitle').textContent=nodeSubtitle(selected||base);$('metricSystems').textContent=fmt(base.children.length);$('metricSecurities').textContent=fmt(base._count);$('metricWeight').textContent=weight((selected||base).weight);$('metricReturn').textContent=pcent(numericReturns(selected||base));$('metricReturn').style.color=(numericReturns(selected||base)<0?'#ff8698':'#70dec0');if(numericReturns(selected||base)==null)$('metricReturn').style.color='#95adc2';
+function renderUI(){const base=current;const childrenNow=children();$('navTitle').textContent=base.name;$('navSubtitle').textContent=nodeSubtitle(base);$('sceneTag').textContent='ORBITAL / '+base.kind.toUpperCase()+' / DEPTH '+String(base._depth||0).padStart(2,'0');$('sceneTitle').innerHTML=ESC(base.name).replace(/(Universe|Markets|3000|1000|2000)$/i,'<span>$1</span>');$('sceneSub').textContent=base.kind==='gap'?'COVERAGE GAP · NO CONSTITUENT DATA AVAILABLE':base.children.length?'SELECT A LUMINOUS SYSTEM TO EXPLORE':'MARKET STRUCTURE ENDPOINT';$('infoTitle').textContent=selected?.name||base.name;$('infoSubtitle').textContent=nodeSubtitle(selected||base);$('metricSystems').textContent=fmt(base.children.length);$('metricSecurities').textContent=fmt(base._count);const qc=dataset.quality||{};const countryCount=qc.country_count??new Set(all.filter(n=>n.kind==='stock').map(n=>n.country).filter(Boolean)).size; $('atlasCountryCount').textContent=live?fmt(countryCount):'DEMO';$('atlasStocksCount').textContent=live?fmt(dataset.root._count):'—';$('atlasAtlasStatus').textContent=live?'ETF HOLDINGS · NOT ALL LISTED SECURITIES':'ILLUSTRATIVE NAVIGATION';$('metricWeight').textContent=weight((selected||base).weight);$('metricReturn').textContent=pcent(numericReturns(selected||base));$('metricReturn').style.color=(numericReturns(selected||base)<0?'#ff8698':'#70dec0');if(numericReturns(selected||base)==null)$('metricReturn').style.color='#95adc2';
 const trail=[...ancestors,base];$('crumbs').innerHTML=trail.map((b,i)=>'<button data-depth="'+i+'" title="'+ESC(b.name)+'">'+ESC(b._depth===0?'UNIVERSE':b.name)+'</button>'+(i<trail.length-1?'<span class="sep">›</span>':'')).join('');$('crumbs').querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{const depth=+btn.dataset.depth;if(depth===trail.length-1)return;current=trail[depth];ancestors=trail.slice(0,depth);selected=null;renderUI();buildScene()}));
 const sorted=[...childrenNow].sort((a,b)=>((b.weight??0)-(a.weight??0))||((b._count??0)-(a._count??0)));
 const html=sorted.slice(0,45).map((n,i)=>'<button class="navitem" data-idx="'+childrenNow.indexOf(n)+'"><i class="orbdot" style="background:'+colorOf(n)+';color:'+colorOf(n)+'"></i><span class="entry"><b>'+ESC(n.name)+'</b><small>'+ESC(n.ticker||n.kind.toUpperCase())+' · '+(typeof n.weight==='number'?weight(n.weight):fmt(n._count)+' names')+'</small></span><span class="chev">›</span></button>').join('');$('navList').innerHTML=html||'<span class="dim small">This is an individual security.</span>';$('navList').querySelectorAll('.navitem').forEach(b=>b.addEventListener('click',()=>focus(childrenNow[+b.dataset.idx])));
 const comparable=branchWeight(sorted);const total=comparable?sorted.reduce((s,n)=>s+n.weight,0):null;const max=comparable?Math.max(...comparable):Math.max(...sorted.map(x=>x._count||1));$('breakdown').innerHTML=sorted.slice(0,7).map((n,i)=>'<div class="barlabel"><span>'+ESC(n.name)+'</span><span>'+((typeof n.weight==='number'&&total!==null)?weight(n.weight):fmt(n._count)+' names')+'</span></div><div class="bar"><i style="width:'+Math.max(2,Math.min(100,((comparable?n.weight:(n._count||1))/Math.max(1,max))*100))+'%;background:'+colorOf(n)+'"></i></div>').join('')||'<div class="small dim">No further market subgroups.</div>';
 const source=base.source||null;
-$('analysisText').textContent=base.kind==='universe'?'Three global market realms. Their ETF portfolios are NOT comparable global-cap weights; select a realm to inspect it.':base.kind==='region'&&base.id==='us'?'The Russell 3000 is composed of the Russell 1000 and Russell 2000. Live membership is approximated via matching ETF holdings; unmatched positions are explicitly retained.':base.kind==='segment'&&base.id==='top200'?'The top 200 securities in the mapped IWB pool are ranked by holdings value; this is NOT official Russell Top 200 membership.':base.kind==='sector'?'Sector exposure is grouped into Yahoo-classified industries when available. Any missing metadata remains explicitly unclassified.':base.kind==='stock'?'Individual security endpoint. Prices and returns are shown only when source-backed fields exist.':(source?'Holding weights are percentages of '+source+' only, not global market-cap weights. '+(base.subtitle||''):(base.subtitle||'Select a constellation to reveal its underlying systems.'));
-$('exploreBtn').disabled=!childrenNow.length;$('exploreBtn').textContent=(selected?.children?.length?'ENTER '+selected.name.slice(0,23):'ENTER SELECTED SYSTEM')+' →';$('coverageNote').textContent=live?'HOLDINGS PROXY · '+(base.source||'multiple sources')+' · '+(dataset.generated_at?new Date(dataset.generated_at).toLocaleString():'undated')+'. Official index membership is not asserted.':'ILLUSTRATIVE PREVIEW · Demo company placements do not assert official index membership. Live data fetch is attempted on opening.';
+$('analysisText').textContent=base.kind==='universe'?('Global country navigation across U.S., developed ex-U.S., and emerging-market ETF holdings. '+(dataset.quality?.country_count||'Several')+' markets represented in this snapshot; frontier is not covered. Fund weights are not additive worldwide.')
+ :base.kind==='galaxy'?'Market-classification realm. Explore geographic regions, national markets, country-relative allocation tiers, sectors and securities. This is not an authoritative complete list of all public companies.'
+ :base.kind==='continent'?'Geographic collection of markets within this ETF market classification. Sector weights from different source ETFs must not be summed.'
+ :base.kind==='country'?'Country ETF holdings, not official national-index membership. Its size-like tiers rank positions by relative holdings WEIGHT, not market capitalization. '+(base.subtitle||'')
+ :base.kind==='segment'?'Position ranks within one source ETF and country, not actual capitalizations. '+(base.subtitle||'')
+ :base.kind==='gap'?'No verified free holdings source currently covers frontier markets comprehensively. This space is uncharted rather than populated with invented securities.'
+ :base.kind==='sector'?'Sectors come from ETF issuer holdings; optional Yahoo industry names are incomplete and may not match official GICS subindustries.'
+ :base.kind==='stock'?'Individual equity endpoint. Valuation is only shown if verified, and individual returns are unavailable unless explicitly provided.'
+ :(source?'Holding weights use the '+source+' ETF denominator only. '+(base.subtitle||''):(base.subtitle||'Choose a constellation to enter this market.'));
+
+$('exploreBtn').disabled=!childrenNow.length;$('exploreBtn').textContent=(selected?.children?.length?'ENTER '+selected.name.slice(0,23):'ENTER SELECTED SYSTEM')+' →';$('coverageNote').textContent=live?'WORLD ATLAS · ETF HOLDINGS PROXY · '+(base.source||'multiple sources')+' · '+(dataset.generated_at?new Date(dataset.generated_at).toLocaleString():'undated')+'. Official index membership is not asserted.':'ILLUSTRATIVE PREVIEW · Demo company placements do not assert official index membership. Live data fetch is attempted on opening.';
 $('bottomCount').textContent=String(childrenNow.length).padStart(2,'0')+' VISIBLE SYSTEMS';$('systemCards').innerHTML=sorted.slice(0,40).map(n=>'<button class="systemcard" data-idx="'+childrenNow.indexOf(n)+'" style="--card-color:'+colorOf(n)+'"><div class="code">'+ESC(n.kind.toUpperCase())+' / '+ESC(n.ticker||n.source||'ORB')+'</div><strong>'+ESC(n.name)+'</strong><small>'+((typeof n.weight==='number')?weight(n.weight)+' of '+ESC(n.source||'fund'):fmt(n._count)+' securities')+'</small></button>').join('');$('systemCards').querySelectorAll('.systemcard').forEach(b=>b.addEventListener('click',()=>focus(childrenNow[+b.dataset.idx])));
 $('leftpanel').classList.remove('open');$('rightpanel').classList.remove('open');}
 function selectHighlight(){const n=selected||current;$('infoTitle').textContent=n.name;$('infoSubtitle').textContent=nodeSubtitle(n);$('metricWeight').textContent=weight(n.weight);$('metricReturn').textContent=pcent(numericReturns(n));$('exploreBtn').disabled=!selected?.children?.length;$('exploreBtn').textContent=selected?.children?.length?'ENTER SELECTED SYSTEM →':'SECURITY / ENDPOINT';document.querySelectorAll('.node-label').forEach(x=>x.classList.toggle('focused',x.dataset.id===n.id));}
@@ -612,30 +756,40 @@ class NebulaFX {
    const rad=(x,y,rr,core,outer)=>{const gr=g.createRadialGradient(x,y,0,x,y,rr);gr.addColorStop(0,core);gr.addColorStop(1,outer||'#00000000');g.fillStyle=gr;g.fillRect(x-rr,y-rr,rr*2,rr*2)};
    // An extended atmospheric halo, distinct for each regional galaxy.
    rad(M,M,M*.94,rgba(.18), '#00000000');rad(M,M,M*.64,rgba(.16,.16),'#00000000');
+   if(n.kind==='gap'){
+     g.save();g.translate(M,M);g.rotate(-.25);g.scale(1,.71);
+     const lens=g.createRadialGradient(0,0,M*.12,0,0,M*.89);
+     lens.addColorStop(0,'rgba(0,0,0,.95)');lens.addColorStop(.32,'rgba(2,3,12,.96)');
+     lens.addColorStop(.43,'rgba(177,102,162,.42)');lens.addColorStop(.49,'rgba(255,170,170,.22)');
+     lens.addColorStop(.6,'rgba(97,62,149,.14)');lens.addColorStop(1,'rgba(0,0,0,0)');
+     g.fillStyle=lens;g.beginPath();g.arc(0,0,M*.89,0,Math.PI*2);g.fill();
+     g.strokeStyle='rgba(244,166,212,.42)';g.lineWidth=M*.018;g.beginPath();g.ellipse(0,0,M*.54,M*.54,0,0,Math.PI*2);g.stroke();
+     g.restore();return c;
+   }
    g.save();g.translate(M,M);g.rotate((r()-.5)*.44);g.scale(1,galaxy?.68:.83);g.globalCompositeOperation='screen';
    if(galaxy){
-     const arms=n.kind==='region'?4:n.kind==='benchmark'?5:3;
+     const arms=n.kind==='galaxy'?(n.id==='us'?2:n.id==='developed'?4:3):n.kind==='continent'?4:n.kind==='country'?3:n.kind==='benchmark'?5:3;const winding=n.id==='emerging'?8:n.id==='developed'?5.6:n.id==='us'?6.8:6.4;
      const spread=many?.76:1;const cloudCount=Math.floor((many?90:205)*spread);
      for(let arm=0;arm<arms;arm++)for(let i=0;i<cloudCount;i++){
-       const rr=.08+.88*r();const angle=arm*Math.PI*2/arms+6.35*rr+(r()-.5)*(.2+.7*rr);
+       const rr=.08+.88*r();const angle=arm*Math.PI*2/arms+winding*rr+(r()-.5)*(.2+.7*rr);
        const radius=M*(.10+.80*rr),x=Math.cos(angle)*radius+(r()-.5)*M*.035,y=Math.sin(angle)*radius+(r()-.5)*M*.035;
        let size=(.025+.058*r())*M*(1.25-rr*.28);const gr=g.createRadialGradient(x,y,0,x,y,size);gr.addColorStop(0,rgba(.08+.11*r(),.08));gr.addColorStop(.42,rgba(.025+.045*r()));gr.addColorStop(1,'#00000000');g.fillStyle=gr;g.fillRect(x-size,y-size,size*2,size*2);
      }
      // Dust lanes add recognizable, asymmetrical spiral arms rather than a circular star cloud.
      for(let arm=0;arm<arms;arm++){
-       g.beginPath();for(let k=0;k<98;k++){let rr=.13+k/98*.83,a=arm*Math.PI*2/arms+6.5*rr+.11,rad=M*(.11+.81*rr);let x=Math.cos(a)*rad,y=Math.sin(a)*rad;k?g.lineTo(x,y):g.moveTo(x,y)}
+       g.beginPath();for(let k=0;k<98;k++){let rr=.13+k/98*.83,a=arm*Math.PI*2/arms+winding*rr+.11,rad=M*(.11+.81*rr);let x=Math.cos(a)*rad,y=Math.sin(a)*rad;k?g.lineTo(x,y):g.moveTo(x,y)}
        g.strokeStyle='rgba(2,5,22,.14)';g.lineWidth=M*.035;g.stroke();
      }
-     const stars=many?1300:4400;
+     const stars=many?1200:3900;
      for(let i=0;i<stars;i++){
-       const arm=i%arms, rr=Math.sqrt(r()),a=arm*Math.PI*2/arms+6.35*rr+(r()-.5)*(.10+.7*rr);
+       const arm=i%arms, rr=Math.sqrt(r()),a=arm*Math.PI*2/arms+winding*rr+(r()-.5)*(.10+.7*rr);
        const rad=M*(.08+.85*rr),x=Math.cos(a)*rad+(r()-.5)*M*.085,y=Math.sin(a)*rad+(r()-.5)*M*.088;
        const br=r(),size=br>.992?1.7:br>.94?1.1:.55;
        g.fillStyle=br>.976?'rgba(241,252,255,.95)':br>.63?rgba(.75,.62):rgba(.24,.1);
        g.beginPath();g.arc(x,y,size,0,Math.PI*2);g.fill();
      }
      // Inner bright star-forming core; double halo for a natural falloff.
-     rad(0,0,M*.47,rgba(.23,.6),'#00000000');rad(0,0,M*.27,'rgba(255,252,238,.40)','#00000000');rad(0,0,M*.13,'rgba(255,255,255,.80)','#00000000');
+     rad(0,0,M*.47,rgba(.23,.6),'#00000000');rad(0,0,M*.27,'rgba(255,252,238,.40)','#00000000');rad(0,0,M*.13,'rgba(245,251,255,.65)','#00000000');
      g.strokeStyle=rgba(.22,.4);g.lineWidth=1;g.beginPath();g.ellipse(0,0,M*.88,M*.58,-.16,0,Math.PI*2);g.stroke();
    }else{
      for(let i=0;i<5;i++){const rx=M*(.30+i*.13);g.lineWidth=i%2===0?1.2:.65;g.strokeStyle=rgba(i===0?.52:.28,.37);g.setLineDash(i%2?[2.5,8]:[]);g.beginPath();g.ellipse(0,0,rx,rx*.66,i*.2,0,Math.PI*2);g.stroke();}
@@ -651,16 +805,16 @@ class NebulaFX {
  rebuild(ns){this.nodes=ns;this.cache.clear();let limit=ns.length>22?10:ns.length>12?16:ns.length;for(const n of ns.slice(0,limit)){if(!n._planet)this.cache.set(n.id,this.makeSprite(n));}}
  draw(t){const g=this.g;if(!g)return;g.setTransform(this.dpr,0,0,this.dpr,0,0);g.clearRect(0,0,this.w,this.h);
   // Gentle parallax in the surrounding cosmic backdrop.
-  const x=Math.sin(t*.025)*11,y=Math.cos(t*.02)*8;g.globalAlpha=.77;g.drawImage(this.background,x-17,y-15,this.w+34,this.h+30);g.globalAlpha=1;
+  const x=Math.sin(t*.025)*11,y=Math.cos(t*.02)*8;g.globalAlpha=.70;g.drawImage(this.background,x-17,y-15,this.w+34,this.h+30);g.globalAlpha=1;
   // Spacetime lines map visible constellations and make three adjacent markets read as a system.
   const pts=this.nodes.map(n=>({n,p:point(n)})).filter(o=>o.p.depth<115);
   if(pts.length>1&&pts.length<13){g.save();g.strokeStyle='rgba(99,173,230,.15)';g.lineWidth=.7;g.setLineDash([2,8]);g.beginPath();for(let i=0;i<pts.length;i++){let a=pts[i].p,b=pts[(i+1)%pts.length].p;if(i===pts.length-1&&pts.length!==3)break;g.moveTo(a.x,a.y);g.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-22,b.x,b.y)}g.stroke();g.restore();}
   // Cached galaxy compositing: negligible work per frame regardless of particle count.
   for(const {n,p} of pts){const sprite=this.cache.get(n.id);if(!sprite)continue;const focal=this.w<760?1.35:2.25;const rScreen=clamp(n._r*this.h*focal/(2*p.depth),11,this.w*.27);const diameter=clamp(rScreen*(n.kind==='region'?3.9:3.35),n.kind==='region'?168:100,this.w<760?430:680);
    if(p.x<-diameter||p.x>this.w+diameter||p.y<-diameter||p.y>this.h+diameter)continue;
-   g.save();g.translate(p.x,p.y);g.rotate(.05*Math.sin(t*.13+n._r)+t*.005*(n.kind==='region'?1:-1));g.globalAlpha=clamp((155-p.depth)/103,.38,.82);g.globalCompositeOperation='screen';g.drawImage(sprite,-diameter/2,-diameter/2,diameter,diameter);g.restore();
+   g.save();g.translate(p.x,p.y);g.rotate(.04*Math.sin(t*.18+n._r)+t*.014*(n.kind==='galaxy'?1:-1));g.globalAlpha=clamp((155-p.depth)/103,.32,.72);g.globalCompositeOperation='screen';g.drawImage(sprite,-diameter/2,-diameter/2,diameter,diameter);g.restore();
    // A rotating observation orbit, with a small luminous tracking satellite.
-   if(!n._planet&&pts.length<15){g.save();g.translate(p.x,p.y);g.rotate(.3);g.strokeStyle=n._color+'5a';g.lineWidth=.85;g.beginPath();g.ellipse(0,0,diameter*.39,diameter*.20,0,0,Math.PI*2);g.stroke();const aa=t*.12+n._r,px=Math.cos(aa)*diameter*.39,py=Math.sin(aa)*diameter*.20;g.shadowColor=n._color;g.shadowBlur=16;g.fillStyle='#e8faff';g.beginPath();g.arc(px,py,1.7,0,Math.PI*2);g.fill();g.restore();}
+   if(!n._planet&&pts.length<15){g.save();g.translate(p.x,p.y);g.rotate(.3);g.strokeStyle=n._color+'5a';g.lineWidth=.85;g.beginPath();g.ellipse(0,0,diameter*.39,diameter*.20,0,0,Math.PI*2);g.stroke();const aa=t*.24+n._r,px=Math.cos(aa)*diameter*.39,py=Math.sin(aa)*diameter*.20;g.shadowColor=n._color;g.shadowBlur=16;g.fillStyle='#e8faff';g.beginPath();g.arc(px,py,1.7,0,Math.PI*2);g.fill();g.restore();}
    if(selected?.id===n.id){g.save();g.strokeStyle='rgba(224,247,255,.65)';g.lineWidth=1.1;g.setLineDash([7,8]);g.beginPath();g.arc(p.x,p.y,diameter*.48+t%3,0,Math.PI*2);g.stroke();g.restore();}
   }
  }
@@ -684,7 +838,7 @@ class CinematicFX{
    if(selected?.id===n.id){const a=t*.5;g.rotate(a);g.strokeStyle='rgba(204,248,255,.35)';g.lineWidth=1;g.setLineDash([5,9]);g.beginPath();g.ellipse(0,0,rr*2.7,rr*1.6,-.25,0,Math.PI*2);g.stroke();g.setLineDash([])}g.restore()
   }}
   // Occasional soft meteors; never enough to obscure labels or data.
-  if(fxQuality==='ultra'){for(let k=0;k<2;k++){const cycle=(t*.091+k*.47)%1,life=Math.sin(Math.PI*clamp((cycle-.22)/.24,0,1));if(life<.04||cycle>.51)continue;const yy=h*(.15+k*.55),xx=w*(1.07-cycle*1.45),len=42+life*100;const grad=g.createLinearGradient(xx+len,yy-len*.27,xx,yy);grad.addColorStop(0,'rgba(136,205,255,0)');grad.addColorStop(1,`rgba(194,234,255,${(life*.41).toFixed(3)})`);g.strokeStyle=grad;g.lineWidth=1.2;g.beginPath();g.moveTo(xx+len,yy-len*.27);g.lineTo(xx,yy);g.stroke()}}
+  if(fxQuality==='ultra'){for(let k=0;k<2;k++){const cycle=(t*.076+k*.47)%1,life=Math.sin(Math.PI*clamp((cycle-.22)/.24,0,1));if(life<.04||cycle>.51)continue;const yy=h*(.15+k*.55),xx=w*(1.07-cycle*1.45),len=42+life*100;const grad=g.createLinearGradient(xx+len,yy-len*.27,xx,yy);grad.addColorStop(0,'rgba(136,205,255,0)');grad.addColorStop(1,`rgba(194,234,255,${(life*.41).toFixed(3)})`);g.strokeStyle=grad;g.lineWidth=1.2;g.beginPath();g.moveTo(xx+len,yy-len*.27);g.lineTo(xx,yy);g.stroke()}}
   g.globalCompositeOperation='source-over';
  }
 }
@@ -704,17 +858,17 @@ class CanvasSpace{
  draw(t,yaw,tilt,distance){const g=this.ctx;if(!this.data)return;g.clearRect(0,0,this.c.width,this.c.height);g.save();g.scale(this.dpr,this.dpr);g.globalCompositeOperation='lighter';const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(tilt),sp=Math.sin(tilt);const d=this.data;const stride=window.innerWidth<750?2:1;for(let i=0;i<this.count;i+=stride){const a=i*12;let x=d[a]-d[a+3],y=d[a+1]-d[a+4],z=d[a+2]-d[a+5];const theta=t*d[a+11],s=Math.sin(theta),c=Math.cos(theta);const xx=x*c-y*s;const yy=x*s+y*c;x=xx+d[a+3];y=yy+d[a+4];z+=d[a+5];let xx2=x*cy+z*sy,zz=-x*sy+z*cy,yy2=y*cp-zz*sp,depth=distance-(y*sp+zz*cp);if(depth<4||depth>260)continue;const mul=(this.w<760?1.35:2.25)*this.h/(2*depth);const px=this.w*.5+xx2*mul,py=this.h*.5-yy2*mul;if(px<-35||px>this.w+35||py<-35||py>this.h+35)continue;let rr=d[a+6],gg=d[a+7],bb=d[a+8],idx=4;if(rr>gg*1.12&&rr>bb*.9)idx=2;else if(bb>rr*1.25)idx=1;else if(gg>rr*1.2)idx=3;else if(rr>gg*1.1&&bb>gg*.8)idx=5;else idx=0;let size=clamp(d[a+9]*Math.pow(distance/depth,.7)*2.25,1.1,25);g.globalAlpha=clamp(.17+.12*Math.sin(t*1.3+d[a+10]),.10,.30);g.drawImage(this.cache[idx],px-size,py-size,size*2,size*2)}g.restore()}
 }
 
-function buildScene(travel=false){const full=children();const displayed=full.slice(0,42);if(selected&&full.some(x=>x.id===selected.id)&&!displayed.some(x=>x.id===selected.id)){displayed[displayed.length-1]=selected}const weighted=displayed.length>0 && displayed.every(n=>typeof n.weight==='number');const magnitudes=displayed.map(n=>weighted?n.weight:Math.max(1,n._count||1)).sort((a,b)=>a-b);const stats={weighted,reference:magnitudes[Math.floor(magnitudes.length*.8)]||1};nodes=displayed.map((n,i)=>geomNode(n,i,displayed.length,stats));targetDistance=(innerWidth<760?(nodes.length<4?58:nodes.length<=9?62:nodes.length<=18?65:78):(nodes.length<4?40:nodes.length<=9?42:nodes.length<=18?46:54));distance=travel?targetDistance+34:targetDistance;$('nodeLayer').innerHTML='';for(const n of nodes){const btn=document.createElement('button');btn.type='button';btn.className='node-label';btn.dataset.id=n.id;btn.style.setProperty('--node-color',n._color);const rank=n.ticker?'SECURITY':n.kind.toUpperCase();btn.innerHTML='<span class="rank">'+ESC(rank)+'</span><strong>'+ESC(n.ticker?`${n.ticker} · ${n.name}`:n.name)+'</strong><em>'+((typeof n.weight==='number')?weight(n.weight)+' · '+ESC(n.source||'ETF'):fmt(n._count)+' mapped names')+' &nbsp; ›</em>';btn.addEventListener('click',e=>{e.stopPropagation();focus(n)});$('nodeLayer').appendChild(btn);n._label=btn;if(n._planet){const orb=document.createElement('div');orb.className='planet-orb '+(['gas-giant','rocky','icy','volcanic'][Math.floor(seeded(n.id)()*4)]);orb.style.setProperty('--node-color',n._color);$('nodeLayer').appendChild(orb);n._orb=orb}}
+function buildScene(travel=false){const full=children();const displayed=full.slice(0,42);if(selected&&full.some(x=>x.id===selected.id)&&!displayed.some(x=>x.id===selected.id)){displayed[displayed.length-1]=selected}const weighted=displayed.length>0 && displayed.every(n=>typeof n.weight==='number');const magnitudes=displayed.map(n=>weighted?n.weight:Math.max(1,n._count||1)).sort((a,b)=>a-b);const stats={weighted,reference:magnitudes[Math.floor(magnitudes.length*.8)]||1};nodes=displayed.map((n,i)=>geomNode(n,i,displayed.length,stats));targetDistance=(innerWidth<760?(nodes.length<4?58:nodes.length<=9?62:nodes.length<=18?65:78):(nodes.length<4?40:nodes.length<=9?42:nodes.length<=18?46:54));distance=travel?targetDistance+34:targetDistance;$('nodeLayer').innerHTML='';for(const n of nodes){const btn=document.createElement('button');btn.type='button';btn.className='node-label';btn.dataset.id=n.id;btn.style.setProperty('--node-color',n._color);const rank=n.kind==='gap'?'NO VERIFIED HOLDINGS':n.ticker?'SECURITY':n.kind.toUpperCase();btn.innerHTML='<span class="rank">'+ESC(rank)+'</span><strong>'+ESC(n.ticker?`${n.ticker} · ${n.name}`:n.name)+'</strong><em>'+((typeof n.weight==='number')?weight(n.weight)+' · '+ESC(n.source||'ETF'):(n.kind==='gap'?'COVERAGE GAP':fmt(n._count)+' mapped names'))+' &nbsp; ›</em>';btn.addEventListener('click',e=>{e.stopPropagation();focus(n)});$('nodeLayer').appendChild(btn);n._label=btn;if(n._planet){const orb=document.createElement('div');orb.className='planet-orb '+(['gas-giant','rocky','icy','volcanic'][Math.floor(seeded(n.id)()*4)]);orb.style.setProperty('--node-color',n._color);$('nodeLayer').appendChild(orb);n._orb=orb}}
 const v=[];
 // GPU interleaved attributes layout: position, center, tint, size, pulse, drift.
 function star(x,y,z,center,color,sz,phase,drift){const cc=color;v.push(x,y,z,center[0],center[1],center[2],cc[0],cc[1],cc[2],sz,phase,drift)}
-const bg=seeded('stellar-background');for(let i=0;i<(window.innerWidth<750?1450:2700);i++){const x=(bg()-.5)*180,y=(bg()-.5)*110,z=-35-bg()*90;const t=bg();star(x,y,z,[0,0,0],t>.95?[.65,.75,1]:[.32+.45*bg(),.48+.34*bg(),.65+.3*bg()],.4+bg()*1.6,6.28*bg(),0)}
+const bg=seeded('stellar-background');for(let i=0;i<(window.innerWidth<750?1050:2450);i++){const x=(bg()-.5)*180,y=(bg()-.5)*110,z=-35-bg()*90;const t=bg();star(x,y,z,[0,0,0],t>.95?[.65,.75,1]:[.32+.45*bg(),.48+.34*bg(),.65+.3*bg()],.4+bg()*1.6,6.28*bg(),0)}
 for(const n of nodes){const r=seeded(n.id+'*');const [rr,gg,bb]=rgb(n._color), center=[n._x,n._y,n._z],rad=n._r;
-const particles=n._planet?88:Math.floor(clamp((window.innerWidth<750?1100:1750)*Math.sqrt(rad/5),390,2700));
-for(let i=0;i<particles;i++){let x,y,z,size,drift=.009+r()*.008;const t=r();if(n._planet){const ph=r()*Math.PI*2,ct=r()*2-1,radial=Math.cbrt(r())*rad*.97;x=radial*Math.sqrt(1-ct*ct)*Math.cos(ph);y=radial*Math.sqrt(1-ct*ct)*Math.sin(ph);z=radial*ct;size=.25+.65*r();drift=.002}else{let ring=Math.sqrt(r());let arm=i%4;let phi=(Math.PI*.5)*arm+(5.5*ring)+(r()-.5)*(.15+.56*ring);let R=ring*rad*(.45+.56*r());x=R*Math.cos(phi)+(r()-.5)*rad*.08;y=R*Math.sin(phi)*(.65+.12*r())+(r()-.5)*rad*.05;z=(r()-.5)*(.22+1.55*(1-ring))+(r()-.5)*rad*.1;size=.85+3.15*r()+(r()>.982?5:0);if(i<particles*.065){x=(r()-.5)*rad*.43;y=(r()-.5)*rad*.35;z=(r()-.5)*rad*.18;size=1.1+2.8*r()}}const color=[clamp(rr*(.5+.8*r())+.29*r(),0,1),clamp(gg*(.5+.8*r())+.23*r(),0,1),clamp(bb*(.7+.7*r())+.20*r(),0,1)];star(n._x+x,n._y+y,n._z+z,center,color,size,r()*Math.PI*2,drift)}
+const particles=n.kind==='gap'?64:n._planet?88:Math.floor(clamp((window.innerWidth<750?850:1500)*Math.sqrt(rad/5),320,2300));
+for(let i=0;i<particles;i++){let x,y,z,size,drift=.009+r()*.008;const t=r();if(n._planet){const ph=r()*Math.PI*2,ct=r()*2-1,radial=Math.cbrt(r())*rad*.97;x=radial*Math.sqrt(1-ct*ct)*Math.cos(ph);y=radial*Math.sqrt(1-ct*ct)*Math.sin(ph);z=radial*ct;size=.25+.65*r();drift=.002}else{let ring=Math.sqrt(r());let arms=n.kind==='galaxy'?(n.id==='us'?2:n.id==='developed'?4:3):4;let arm=i%arms;let phi=(Math.PI*2/arms)*arm+((n.id==='emerging'?7.2:5.5)*ring)+(r()-.5)*(.15+.56*ring);let R=ring*rad*(.45+.56*r());x=R*Math.cos(phi)+(r()-.5)*rad*.08;y=R*Math.sin(phi)*(.65+.12*r())+(r()-.5)*rad*.05;z=(r()-.5)*(.22+1.55*(1-ring))+(r()-.5)*rad*.1;size=.85+3.15*r()+(r()>.982?5:0);if(i<particles*.065){x=(r()-.5)*rad*.43;y=(r()-.5)*rad*.35;z=(r()-.5)*rad*.18;size=1.1+2.8*r()}}const color=[clamp(rr*(.5+.8*r())+.29*r(),0,1),clamp(gg*(.5+.8*r())+.23*r(),0,1),clamp(bb*(.7+.7*r())+.20*r(),0,1)];star(n._x+x,n._y+y,n._z+z,center,color,size,r()*Math.PI*2,drift)}
 // Luminous core and vertical axial jets emphasize depth without dense geometry.
-for(let i=0;i<(n._planet?3:28);i++){let a=r()*Math.PI*2,pr=Math.pow(r(),2)*rad*.34;star(n._x+pr*Math.cos(a),n._y+pr*Math.sin(a),n._z+(r()-.5)*rad*.35,center,[.72+.27*r(),.82+.17*r(),1],1.5+3*r(),r()*6.28,.004)}
-for(let i=0;i<(n._planet?0:180);i++){const th=i/180*Math.PI*2;const R=rad*(.98+.05*r());star(n._x+Math.cos(th)*R,n._y+Math.sin(th)*R*.66,n._z+Math.sin(th)*R*.14,center,[rr*.58,gg*.66,bb*.77],.7+r()*1.2,r()*6.28,.003)}
+for(let i=0;i<(n.kind==='gap'?1:n._planet?3:28);i++){let a=r()*Math.PI*2,pr=Math.pow(r(),2)*rad*.34;star(n._x+pr*Math.cos(a),n._y+pr*Math.sin(a),n._z+(r()-.5)*rad*.35,center,[.72+.27*r(),.82+.17*r(),1],1.5+3*r(),r()*6.28,.004)}
+for(let i=0;i<(n.kind==='gap'||n._planet?0:180);i++){const th=i/180*Math.PI*2;const R=rad*(.98+.05*r());star(n._x+Math.cos(th)*R,n._y+Math.sin(th)*R*.66,n._z+Math.sin(th)*R*.14,center,[rr*.58,gg*.66,bb*.77],.7+r()*1.2,r()*6.28,.003)}
 }
 if(renderer)renderer.setGeometry(new Float32Array(v),v.length/12);if(sceneFx)sceneFx.rebuild(nodes);updateLabels();}
 function point(n){let x=n._x,y=n._y,z=n._z;let cy=Math.cos(rotation),sy=Math.sin(rotation);const rx=x*cy+z*sy,rz=-x*sy+z*cy;const cp=Math.cos(pitch),sp=Math.sin(pitch);const ry=y*cp-rz*sp,pz=y*sp+rz*cp;const d=Math.max(4,distance-pz),s=(window.innerWidth<760?1.35:2.25)/d;const hh=renderer?.h||innerHeight,ww=renderer?.w||innerWidth;return {x:ww/2+rx*s*hh/2,y:hh/2-ry*s*hh/2,depth:d}}
@@ -754,7 +908,7 @@ function syncDataLab(){
  const classified=qa?qa.industry_classified_nodes:all.filter(n=>n.kind==='stock'&&n.industry).length;
  const stocks=qa?qa.mapped_security_nodes:dataset.root?._count||0;
  const coverage=stocks?Math.round(1000*classified/stocks)/10:0;
- $('labCoverage').textContent=live?('STOCK NODES '+fmt(stocks)+'  ·  INDUSTRY CLASSIFIED '+fmt(classified)+' ('+coverage.toFixed(1)+'%)  ·  UNCLASSIFIED '+fmt(Math.max(0,stocks-classified))+'  ·  OFFICIAL INDEX MEMBERSHIP: NO'):'DEMO STRUCTURE · NO LIVE HOLDINGS OR QUOTES';
+ $('labCoverage').textContent=live?('STOCK NODES '+fmt(stocks)+'  ·  INDUSTRY CLASSIFIED '+fmt(classified)+' ('+coverage.toFixed(1)+'%)  ·  UNCLASSIFIED '+fmt(Math.max(0,stocks-classified))+'  ·  OFFICIAL INDEX MEMBERSHIP: NO'):'WORLD ATLAS PREVIEW · LOAD GITHUB SNAPSHOT OR IMPORT COLAB JSON';
  $('labCoverage').style.color=live&&coverage<50?'#ffb77e':'#8bd1fb';
  $('labLastUpdate').textContent=last?'Created '+new Date(last).toLocaleString()+' · '+Object.keys(dataset.sources||{}).length+' source ETFs.':'An updated holdings file has not been imported.';
 }
@@ -793,7 +947,7 @@ $('navToggle').onclick=()=>{$('leftpanel').classList.toggle('open');$('rightpane
 $('searchToggle').onclick=()=>openSearch();$('closeSearch').onclick=()=>closeSearch();$('helpBtn').onclick=()=>{$('modalShade').classList.add('show')};$('closeModal').onclick=()=>{$('modalShade').classList.remove('show')};$('uploadBtn').onclick=()=>$('fileInput').click();$('refreshBtn').onclick=()=>{fetchSnapshot(true);$('modalShade').classList.remove('show')};$('downloadData').onclick=exportSnapshot;
 $('fileInput').addEventListener('change',async e=>{const file=e.target.files?.[0];await importOrbitFile(file);e.target.value=''});
 function openSearch(){$('searchShade').classList.add('show');$('searchInput').value='';runSearch('');setTimeout(()=>$('searchInput').focus(),40)}function closeSearch(){$('searchShade').classList.remove('show')}
-function runSearch(raw){const q=raw.trim().toLowerCase();let hits=q.length<2?all.filter(n=>n.kind==='region'||n.kind==='benchmark').slice(0,12):all.filter(n=>(n.name||'').toLowerCase().includes(q)||(n.ticker||'').toLowerCase().includes(q)).slice(0,40);$('searchResults').innerHTML=hits.length?hits.map((n,i)=>'<button class="result" data-idx="'+i+'"><span><b>'+ESC(n.ticker||n.name)+'</b><br><small>'+ESC(n.kind.toUpperCase()+' · '+n.name)+'</small></span><span style="color:#82cfff">LOCATE ↗</span></button>').join(''):'<p class="small dim">No matches in the loaded snapshot. Search is limited to mapped holdings and sample records.</p>';$('searchResults').querySelectorAll('.result').forEach(btn=>btn.onclick=()=>{goTo(hits[+btn.dataset.idx]);closeSearch()})}
+function runSearch(raw){const q=raw.trim().toLowerCase();let hits=q.length<2?all.filter(n=>['galaxy','continent','country'].includes(n.kind)).slice(0,18):all.filter(n=>(n.name||'').toLowerCase().includes(q)||(n.ticker||'').toLowerCase().includes(q)).slice(0,40);$('searchResults').innerHTML=hits.length?hits.map((n,i)=>'<button class="result" data-idx="'+i+'"><span><b>'+ESC(n.ticker||n.name)+'</b><br><small>'+ESC(n.kind.toUpperCase()+' · '+n.name)+'</small></span><span style="color:#82cfff">LOCATE ↗</span></button>').join(''):'<p class="small dim">No matches in the loaded snapshot. Search is limited to mapped holdings and sample records.</p>';$('searchResults').querySelectorAll('.result').forEach(btn=>btn.onclick=()=>{goTo(hits[+btn.dataset.idx]);closeSearch()})}
 $('searchInput').addEventListener('input',e=>runSearch(e.target.value));window.addEventListener('keydown',e=>{const dialog=$('searchShade').classList.contains('show')||$('modalShade').classList.contains('show')||$('dataLabShade').classList.contains('show');if(e.key==='Escape'){$('searchShade').classList.remove('show');$('modalShade').classList.remove('show');$('leftpanel').classList.remove('open');$('rightpanel').classList.remove('open');closeDataLab();return}if(dialog)return;if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();openSearch()}if(e.key==='Backspace'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();goBack()}if(e.key.toLowerCase()==='h')goHome();if(e.key==='ArrowLeft')rotation-=.15;if(e.key==='ArrowRight')rotation+=.15});
 window.addEventListener('resize',()=>{if(renderer)renderer.resize();if(sceneFx)sceneFx.resize();if(atmosFx)atmosFx.resize();buildScene()});
 try{atmosFx=new CinematicFX($('cinemaFX'))}catch(e){console.warn('Optional cinematic overlay disabled:',e)}try{sceneFx=new NebulaFX($('nebulaSurface'))}catch(e){console.warn('Optional nebula compositing disabled:',e)}try{renderer=new WebGLSpace(canvas)}catch(err){console.warn('WebGL unavailable, falling back to animated 3D canvas projection:',err.message);try{renderer=new CanvasSpace(canvas);toast('GPU unavailable: software-rendered 3D mode enabled')}catch(fatal){console.error('No drawing backend',fatal)}}if(renderer){hydrate();renderUI();buildScene();requestAnimationFrame(animate)}else{hydrate();renderUI();}
