@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>ORBITAL | Stellar Engine — Cinematic Restored</title>
+<style>
+/* No render-blocking remote font import: system fonts provide an immediate offline-safe fallback. */
+:root{--bg:#030610;--surface:rgba(9,16,32,.81);--surface2:rgba(16,29,53,.88);--line:rgba(159,197,252,.17);--white:#eff7ff;--muted:#93a6bd;--cyan:#7ae9ff;--blue:#589aff;--violet:#c39dff;--gold:#f2c478;--green:#56e0ba;--red:#ff798f}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}button,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:default}button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#cosmos{position:fixed;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#101c3b 0%,#081229 30%,#040916 62%,#01030b 100%)}
+#aurora{position:absolute;inset:-15%;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 25% 31%,rgba(26,105,169,.23),transparent 37%),radial-gradient(ellipse at 80% 53%,rgba(109,52,171,.19),transparent 43%),radial-gradient(ellipse at 44% 92%,rgba(12,85,139,.18),transparent 39%);filter:blur(32px);opacity:.86;animation:cosmicBreath 22s ease-in-out infinite alternate;transform-origin:50% 50%}
+#nebulaSurface{position:absolute!important;inset:0;z-index:1;pointer-events:none!important;cursor:default!important;touch-action:auto!important;opacity:.98;mix-blend-mode:screen}
+#universe{position:relative;z-index:2}
+#stars2d{z-index:3}
+#vignette{z-index:4;box-shadow:inset 0 0 180px rgba(0,0,0,.45)!important}
+@keyframes cosmicBreath{from{transform:scale(1) rotate(-3deg);opacity:.65}to{transform:scale(1.13) rotate(5deg);opacity:1}}
+#cosmos:after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 80%,rgba(57,65,132,.16),transparent 47%),radial-gradient(ellipse at 77% 18%,rgba(64,24,111,.21),transparent 41%),linear-gradient(90deg,rgba(1,3,9,.5),transparent 26%,transparent 75%,rgba(1,3,9,.53));pointer-events:none}
+canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas.dragging{cursor:grabbing}
+#stars2d{position:absolute;inset:0;pointer-events:none;opacity:.16;background-image:radial-gradient(1px 1px at 17% 24%,#d7ecff,transparent),radial-gradient(2px 2px at 69% 34%,#fff,transparent),radial-gradient(1px 1px at 82% 82%,#9edaff,transparent);background-size:320px 270px,470px 310px,530px 410px}
+#vignette{position:absolute;inset:0;box-shadow:inset 0 0 160px rgba(0,0,0,.63);pointer-events:none}
+#hud{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;z-index:10}
+#hud button,#hud input,#hud label,#hud .node-label,#hud select{pointer-events:auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:21px 30px 15px;border-bottom:1px solid rgba(165,215,255,.12);background:linear-gradient(180deg,rgba(2,7,18,.94),rgba(3,8,20,.53))}
+.brand{display:flex;align-items:center;gap:12px;min-width:210px}.mark{height:38px;width:38px;border:1px solid rgba(126,216,255,.55);border-radius:50%;display:grid;place-items:center;position:relative;box-shadow:0 0 22px #3764ad30,inset 0 0 16px #204c9652}.mark:before{content:'';height:22px;width:22px;border:1.5px solid #8edcff;border-radius:50%;transform:rotate(-23deg) scaleY(.48);position:absolute}.mark:after{content:'';height:5px;width:5px;background:#eaffff;box-shadow:0 0 15px #7bdcff;border-radius:50%;position:absolute;left:25px;top:11px}.brandname{font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;letter-spacing:.28em;line-height:1}.brandline{font:9px 'Space Mono',monospace;letter-spacing:.19em;color:#7e9db9;margin-top:6px}
+.topcenter{display:flex;gap:14px;align-items:center;justify-content:center;flex:1}.mode-title{font:10px 'Space Mono',monospace;letter-spacing:.18em;color:#9ab4cf;text-transform:uppercase}.status{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);background:#0c1626a6;border-radius:3px;font:10px 'Space Mono',monospace;letter-spacing:.08em;white-space:nowrap}.status-dot{height:6px;width:6px;background:#f1bf73;border-radius:50%;box-shadow:0 0 11px #e7a252}.status[data-state=live] .status-dot{background:#59dfbb;box-shadow:0 0 10px #59dfbb}.status[data-state=stale] .status-dot{background:#ff957d}.topactions{display:flex;align-items:center;gap:7px}.icon-btn{height:36px;min-width:36px;border:1px solid #9ab8e02d;background:#0a1729a1;color:#c4d8ed;border-radius:3px;font-size:17px;display:grid;place-items:center;transition:background .2s,border .2s}.icon-btn:hover{background:#173554;border-color:#77d9ff69}.topactions .toplabel{font:10px 'Space Mono',monospace;letter-spacing:.1em;margin-right:6px;color:#90a9c3}
+.content{flex:1;min-height:0;display:flex;position:relative}.leftpanel,.rightpanel{pointer-events:auto;align-self:flex-start;margin:23px 0 0 26px;width:280px;max-height:calc(100vh - 190px);overflow-y:auto;border:1px solid rgba(126,187,240,.17);background:linear-gradient(148deg,rgba(7,15,31,.86),rgba(5,12,26,.78));box-shadow:0 24px 85px #0008,0 0 50px #2f74ba15,inset 0 1px 0 #d8f1ff17;backdrop-filter:blur(24px);scrollbar-width:thin;scrollbar-color:#46617f transparent;border-radius:4px}.rightpanel{margin:23px 25px 0 auto;width:302px}.panelpad{padding:19px}.micro{font:10px 'Space Mono',monospace;color:#7f9ab7;letter-spacing:.15em;text-transform:uppercase}.dim{color:var(--muted)}.panelhead{font:600 21px 'Space Grotesk',sans-serif;letter-spacing:-.03em;margin:12px 0 5px}.small{font-size:12px;line-height:1.6}.divider{height:1px;background:var(--line);margin:17px 0}.crumbs{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font:10px 'Space Mono',monospace;line-height:1.7;margin-top:14px}.crumbs button{border:0;background:none;color:#9cc8ec;padding:3px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.crumbs button:last-child{color:white}.crumbs .sep{color:#54738d}
+.nav-list{display:grid;gap:5px;margin-top:10px}.navitem{display:flex;width:100%;gap:10px;align-items:center;border:1px solid transparent;background:rgba(24,48,78,.34);text-align:left;padding:10px 8px;color:#e6f5ff;transition:.2s;border-radius:3px}.navitem:hover{border-color:#8edafa59;background:rgba(40,77,120,.45);transform:translateX(2px)}.navitem .orbdot{flex:0 0 8px;height:8px;border-radius:50%;box-shadow:0 0 11px currentColor}.navitem .entry{flex:1;min-width:0}.navitem .entry b{font:600 12px 'Space Grotesk',sans-serif;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.navitem .entry small{display:block;color:#7f9bb5;font:10px 'Space Mono',monospace;margin-top:4px}.navitem .chev{color:#6388ae;font-size:17px}
+.barlabel{display:flex;justify-content:space-between;gap:8px;font:11px 'Space Mono',monospace;color:#b0c9dd;margin:11px 0 5px}.barlabel span:first-child{max-width:185px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar{height:3px;background:#18334b;border-radius:4px;overflow:hidden}.bar>i{display:block;height:100%;border-radius:4px;background:var(--cyan);box-shadow:0 0 9px currentColor}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.stat{border-top:1px solid var(--line);padding-top:11px}.stat .number{font:600 20px 'Space Grotesk',sans-serif;letter-spacing:-.04em;margin-top:4px;min-height:26px}.stat .caption{font:9px 'Space Mono',monospace;letter-spacing:.07em;color:#7490a7}.mini-legend{margin-top:12px;padding:10px;background:rgba(67,105,144,.11);border-left:2px solid #69c6ff50;color:#a9bfd4;font-size:11px;line-height:1.55}
+.scenehead{position:absolute;left:50%;top:22px;transform:translateX(-50%);text-align:center;pointer-events:none;width:calc(100% - 620px);min-width:260px}.scenehead .eyebrow{font:10px 'Space Mono',monospace;letter-spacing:.32em;color:#84b9d9}.scenehead h1{font:600 clamp(22px,3.5vw,46px) 'Space Grotesk',sans-serif;letter-spacing:-.06em;margin:8px 0 5px;text-shadow:0 2px 30px #0009}.scenehead p{font:11px 'Space Mono',monospace;letter-spacing:.12em;color:#92b2c9;margin:0}.scenehead h1 span{color:#8bdfff;text-shadow:0 0 35px #3f88ff8c}.scenehead .eyebrow{color:#9fd3f5;text-shadow:0 0 18px #5bbbfbb8}.scenehead h1{text-shadow:0 2px 30px #020916,0 0 65px #4c8dcc30}
+.node-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}.planet-orb{position:absolute;pointer-events:none;transform:translate(-50%,-50%);border-radius:50%;will-change:transform;z-index:1;background:radial-gradient(circle at 31% 27%,rgba(255,255,255,.98) 0%,rgba(255,255,255,.57) 4%,color-mix(in srgb,var(--node-color) 82%,white 18%) 15%,color-mix(in srgb,var(--node-color) 82%,#11152f 18%) 39%,color-mix(in srgb,var(--node-color) 31%,#01030d 69%) 72%,#01030a 100%);box-shadow:inset -9px -10px 17px rgba(0,0,0,.8),inset 3px 2px 8px rgba(255,255,255,.23),0 0 17px color-mix(in srgb,var(--node-color) 62%,transparent),0 0 37px color-mix(in srgb,var(--node-color) 23%,transparent);border:1px solid color-mix(in srgb,var(--node-color) 65%,transparent);opacity:.98}
+.planet-orb{background:radial-gradient(circle at 28% 20%,#ffffffdb 0%,transparent 10%),repeating-linear-gradient(174deg,transparent 0 9%,rgba(0,0,0,.22) 10% 13%,rgba(255,255,255,.09) 14% 15%,transparent 16% 22%),radial-gradient(circle at 33% 28%,color-mix(in srgb,var(--node-color) 87%,#ffffff 13%) 3%,color-mix(in srgb,var(--node-color) 67%,#182f57 33%) 35%,color-mix(in srgb,var(--node-color) 24%,#061024 76%) 72%,#01030a 100%);box-shadow:inset -12px -13px 21px #000e,inset 5px 5px 10px #ffffff60,0 0 3px 2px color-mix(in srgb,var(--node-color) 45%,transparent),0 0 24px color-mix(in srgb,var(--node-color) 55%,transparent),0 0 55px color-mix(in srgb,var(--node-color) 22%,transparent)}
+.planet-orb:before{content:'';position:absolute;inset:-5%;border-radius:50%;border:1px solid color-mix(in srgb,var(--node-color) 50%,transparent);box-shadow:inset 2px 0 8px #ffffff20,0 0 14px color-mix(in srgb,var(--node-color) 65%,transparent);pointer-events:none}
+.planet-orb.gas-giant{background:repeating-linear-gradient(8deg,transparent 0 7%,#ffcc9d38 9% 11%,#0704176c 12% 15%,transparent 17% 22%),radial-gradient(circle at 33% 22%,#fff8 0%,color-mix(in srgb,var(--node-color) 94%,white 6%) 15%,color-mix(in srgb,var(--node-color) 52%,#15223e 48%) 55%,#01030b 100%)}
+.planet-orb.rocky{background:radial-gradient(ellipse at 36% 30%,#e9ecffb3,transparent 13%),radial-gradient(ellipse at 63% 38%,#08071e85,transparent 27%),radial-gradient(ellipse at 34% 68%,#ffc99036,transparent 32%),radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--node-color) 80%,#ffffff 20%) 12%,color-mix(in srgb,var(--node-color) 38%,#0d2139 62%) 60%,#030612 99%)}
+.planet-orb.icy{background:radial-gradient(circle at 32% 20%,#fffdf9da,transparent 13%),repeating-linear-gradient(165deg,transparent 0 8%,#e0ffff24 10% 13%,transparent 14% 22%),radial-gradient(circle at 36% 26%,#b6e8ff 6%,color-mix(in srgb,var(--node-color) 54%,#d5f3ff 46%) 36%,#235276 71%,#030a20 99%)}
+.planet-orb.volcanic{background:radial-gradient(ellipse at 41% 36%,#ffd5a161,transparent 12%),repeating-linear-gradient(145deg,transparent 0 12%,#ff8c3d35 14% 15%,#06102460 16% 21%),radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--node-color) 65%,#ffd29e 35%) 4%,#4f4566 39%,#111123 78%,#01030b 100%)}
+.planet-orb::after{content:'';position:absolute;left:-30%;top:38%;width:160%;height:28%;border:1px solid color-mix(in srgb,var(--node-color) 70%,transparent);border-radius:50%;transform:rotate(-20deg);box-shadow:0 0 8px color-mix(in srgb,var(--node-color) 40%,transparent);opacity:.6}
+.node-label{z-index:3;position:absolute;transform:translate(-50%,0);background:linear-gradient(90deg,rgba(8,18,35,.88),rgba(8,18,35,.67));border:1px solid rgba(135,207,249,.35);border-left:2px solid var(--node-color,#8ad9ff);border-radius:2px;padding:9px 12px;text-align:left;min-width:110px;max-width:180px;color:white;box-shadow:0 0 24px #0009,0 0 28px color-mix(in srgb,var(--node-color,#8ad9ff) 11%,transparent);backdrop-filter:blur(9px);transition:border-color .2s,background .2s;pointer-events:auto}.node-label:before{content:'';position:absolute;width:1px;height:17px;background:linear-gradient(var(--node-color),transparent);left:50%;bottom:100%;opacity:.75}.node-label:hover,.node-label.focused{border-color:#d2f7ff;background:#172a45ea;box-shadow:0 0 42px #7fbfff37,inset 0 0 22px #7fbfff15;transform:translate(-50%,0) scale(1.045)}.node-label strong{font:600 12px 'Space Grotesk',sans-serif;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.node-label em{display:block;margin-top:4px;font:9px 'Space Mono',monospace;color:#9dbdd4;font-style:normal;white-space:nowrap}.node-label .rank{position:absolute;top:-18px;left:0;font:9px 'Space Mono',monospace;letter-spacing:.13em;color:var(--node-color)}
+.bottom{pointer-events:auto;min-height:120px;border-top:1px solid #a1cfff28;background:linear-gradient(180deg,rgba(2,7,19,.55),rgba(3,8,20,.94));padding:12px 27px 17px;display:flex;align-items:center;gap:25px;backdrop-filter:blur(16px)}.bottommeta{width:214px;flex:0 0 214px}.bottommeta .navhint{color:#80a3be;font:10px 'Space Mono',monospace;line-height:1.8}.bottommeta .time{font:12px 'Space Mono',monospace;color:#b6e6ff}.systemcards{display:flex;gap:10px;overflow-x:auto;scrollbar-width:thin;flex:1;padding-bottom:5px}.systemcard{height:79px;flex:0 0 169px;background:linear-gradient(115deg,#11243ca1,#081427b2);border:1px solid #82c9f52d;color:white;text-align:left;padding:13px;position:relative;overflow:hidden;transition:.2s}.systemcard:hover{border-color:#9cdbffab;transform:translateY(-4px);box-shadow:0 8px 34px #67beff20}.systemcard:after{content:'';position:absolute;inset:0 0 auto auto;width:75px;height:75px;opacity:.18;background:radial-gradient(circle,var(--card-color),transparent 70%)}.systemcard .code{color:var(--card-color);font:9px 'Space Mono',monospace;letter-spacing:.16em}.systemcard strong{display:block;font:600 12px 'Space Grotesk',sans-serif;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:6px 0 4px}.systemcard small{font:10px 'Space Mono',monospace;color:#98b8cb}
+.floatleft{position:absolute;left:50%;top:200px;bottom:auto;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;background:#071021ad;border:1px solid #a5d1ff26;padding:5px;backdrop-filter:blur(12px);border-radius:50px}.floatleft button{border:0;background:transparent;padding:8px 13px;color:#8fa9c6;font:10px 'Space Mono',monospace;white-space:nowrap;border-radius:50px}.floatleft button.active{background:#1e4262;color:#d4faff}.floatleft button:hover{color:white}
+.corner-coordinates{position:absolute;bottom:133px;right:28px;font:9px 'Space Mono',monospace;color:#466d89;letter-spacing:.09em;pointer-events:none}
+#warp{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 10%,rgba(68,185,252,.14) 36%,rgba(0,0,0,.75) 100%);z-index:20;opacity:0;pointer-events:none;transform:scale(1);transition:opacity .25s,transform .65s}#warp.active{opacity:.88;transform:scale(1.26)}
+#warp:after{content:'';position:absolute;inset:-50%;background:repeating-conic-gradient(from 8deg at 50% 50%,transparent 0deg 5deg,rgba(149,225,255,.25) 5.04deg 5.1deg,transparent 5.15deg 16deg);mask-image:radial-gradient(circle,transparent 5%,#000 25%,transparent 70%);opacity:0;transform:scale(.32);pointer-events:none}
+#warp.active:after{animation:hyperspace .62s cubic-bezier(.14,.72,.38,1) both}
+@keyframes hyperspace{0%{opacity:0;transform:scale(.35) rotate(-6deg)}25%{opacity:.85}100%{opacity:0;transform:scale(2.7) rotate(9deg)}}
+#searchShade,#modalShade{position:fixed;inset:0;background:rgba(0,4,12,.73);z-index:40;display:none;align-items:flex-start;justify-content:center;padding:15vh 18px 30px;backdrop-filter:blur(12px)}#searchShade.show,#modalShade.show{display:flex}.dialog{width:min(620px,100%);border:1px solid #82bdf85e;background:#091525f2;box-shadow:0 22px 90px #000b;padding:24px;border-radius:6px;max-height:74vh;overflow-y:auto}.dialog h2{font:600 27px 'Space Grotesk',sans-serif;margin:0 0 8px}.dialog p{font-size:12px;color:#abc1d6;line-height:1.65}.dialog .dialogtop{display:flex;justify-content:space-between;align-items:center;gap:10px}.searchbox{width:100%;border:1px solid #73b8fa58;background:#07101e;padding:17px 15px;color:#e9f7ff;margin:14px 0;font:14px 'Space Mono',monospace;border-radius:3px}.results{max-height:45vh;overflow-y:auto}.result{width:100%;display:flex;align-items:center;justify-content:space-between;color:white;border:0;border-bottom:1px solid #87c9ff19;background:transparent;padding:12px 3px;text-align:left}.result:hover{background:#15304f88}.result small{color:#8fa8ba;font:10px 'Space Mono',monospace}.actionrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.solidbtn{padding:11px 15px;background:linear-gradient(135deg,#74e1ff,#4b97ec);border:0;color:#03111e;border-radius:3px;font:700 11px 'Space Mono',monospace;letter-spacing:.04em}.outlinebtn{padding:10px 13px;background:#0d223a;color:#bdeaff;border:1px solid #6fa8d064;border-radius:3px;font:10px 'Space Mono',monospace}.notice{padding:13px 15px;border:1px solid #5a85ad62;background:rgba(49,89,124,.16);font-size:11px;line-height:1.65;color:#afd0ea;margin:16px 0}.notice strong{color:white}
+#toast{position:fixed;left:50%;top:88px;transform:translateX(-50%) translateY(-10px);padding:11px 17px;border:1px solid #96dcfc60;background:#0a1a2eeb;color:#d0e8fc;font:11px 'Space Mono',monospace;z-index:50;opacity:0;transition:.3s;pointer-events:none;text-align:center;max-width:90vw}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#intro{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;z-index:9;opacity:0;animation:intro 4s ease both}#intro .kicker{font:10px 'Space Mono',monospace;letter-spacing:.45em;color:#9dccf5}#intro h2{font:700 clamp(34px,6.3vw,86px) 'Space Grotesk',sans-serif;line-height:1.03;letter-spacing:-.075em;margin:17px 0;background:linear-gradient(95deg,#fff,#a6dcff,#d6b3ff);color:transparent;background-clip:text;text-shadow:0 0 55px #76bfff44}#intro p{font:10px 'Space Mono',monospace;letter-spacing:.25em;color:#b7d2e7}
+@keyframes intro{0%{opacity:0;transform:translate(-50%,-42%) scale(1.05)}14%{opacity:1}65%{opacity:1}100%{opacity:0;transform:translate(-50%,-57%) scale(.96)}}
+.mobilebtn{display:none}.progress-line{position:fixed;bottom:0;left:0;height:2px;background:linear-gradient(90deg,#4867ff,#88dfff);width:0;z-index:100;transition:width 1s}
+@media(max-width:1150px){.leftpanel{width:236px;margin-left:14px}.rightpanel{width:248px;margin-right:14px}.panelpad{padding:14px}.scenehead{width:calc(100% - 530px)}.topbar{padding:14px 18px}.bottom{padding:10px 14px}.bottommeta{flex-basis:160px;width:160px}}
+@media(max-width:760px){.topbar{padding:12px 14px;gap:8px}.brand{min-width:0}.brandname{font-size:16px;letter-spacing:.15em}.brandline{display:none}.mark{height:27px;width:27px}.topcenter{display:none}.topactions .toplabel{display:none}.topactions{gap:5px}.status{font-size:8px;padding:8px 7px}.icon-btn{min-width:28px;height:30px;font-size:14px}.leftpanel,.rightpanel{position:absolute;bottom:16px;top:auto;margin:0;width:calc(100% - 28px);max-height:min(56vh,470px);display:none;left:14px;right:14px;z-index:25}.leftpanel.open,.rightpanel.open{display:block}.scenehead{width:100%;top:16px;padding:0 14px;min-width:0}.scenehead h1{font-size:clamp(23px,6vw,36px);margin:7px 0}.scenehead p{font-size:8px;letter-spacing:.07em}.scenehead .eyebrow{font-size:9px}.node-label{min-width:82px;max-width:132px;padding:7px 8px}.node-label strong{font-size:10px}.node-label em{font-size:8px}.bottom{min-height:116px;max-height:116px;padding:9px 10px;display:block}.bottommeta{display:none}.systemcards{height:95px;align-items:stretch}.systemcard{flex-basis:144px;height:85px;padding:11px}.floatleft{top:137px;bottom:auto;white-space:nowrap}.floatleft button{font-size:9px;padding:7px 7px}.corner-coordinates{display:none}.mobilebtn{display:grid}.leftpanel.open ~ .rightpanel.open{display:none}.node-layer{top:0}#intro{top:46%}#intro p{letter-spacing:.13em}}
+@media(prefers-reduced-motion:reduce){#aurora{animation:none}#intro{animation:none;display:none}#warp{transition:none}.node-label,.systemcard{transition:none}}
+
+/* ORBITAL 2.0 · cinematic navigation + embedded data lab */
+#cinemaFX{position:absolute;inset:0;z-index:3;pointer-events:none!important;mix-blend-mode:screen;opacity:.95}
+#stars2d{z-index:4}
+#vignette{z-index:5}
+#cosmos{background:radial-gradient(ellipse at 45% 49%,#111d3c 0%,#050c22 35%,#020713 69%,#01030b 100%)}
+#cosmos::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-radial-gradient(ellipse at 49% 52%,transparent 0 91px,rgba(66,106,166,.025) 91px 92px,transparent 93px 185px);opacity:.55}
+#nebulaSurface{filter:saturate(1.16) contrast(1.07)}
+#cinemaFX{filter:saturate(1.25)}
+.planet-orb{filter:saturate(1.2) brightness(1.05);animation:planetFloat 13s ease-in-out infinite alternate}
+.planet-orb::after{animation:planetRing 18s linear infinite}
+@keyframes planetFloat{from{filter:saturate(1.1) brightness(.98)}to{filter:saturate(1.35) brightness(1.12)}}
+@keyframes planetRing{from{transform:rotate(-25deg) scaleY(.7)}to{transform:rotate(335deg) scaleY(.7)}}
+.node-label{border-radius:5px;background:linear-gradient(115deg,rgba(6,17,36,.94),rgba(8,22,46,.7));box-shadow:0 12px 35px #000b,0 0 19px color-mix(in srgb,var(--node-color,#8ad9ff) 17%,transparent),inset 0 1px 0 #d7edff15}
+.node-label.focused{box-shadow:0 0 30px color-mix(in srgb,var(--node-color,#8ad9ff) 40%,transparent),0 0 70px #38aeff28,inset 0 1px 0 #fff4}
+#dataLabToggle{min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;padding:0 12px;font:700 10px 'Space Mono',monospace;letter-spacing:.09em;border-color:#7bddff6e;color:#c8f3ff;background:linear-gradient(135deg,#102d49bd,#071a30df)}
+#dataLabToggle:hover{background:linear-gradient(135deg,#225e88bd,#0b2c54ef);box-shadow:0 0 18px #6cccf929}
+#dataLabShade{position:fixed;inset:0;z-index:55;background:rgba(2,6,18,.83);backdrop-filter:blur(19px);display:none;align-items:center;justify-content:center;padding:18px}
+#dataLabShade.show{display:flex}
+.data-lab{width:min(930px,100%);max-height:min(92vh,900px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #8ac8fa67;border-radius:13px;background:linear-gradient(154deg,#102039f5,#050c1aFA 60%,#0e1730f5);box-shadow:0 40px 130px #000f,0 0 110px #3185ce23,inset 0 1px 0 #dcf6ff21;position:relative}
+.data-lab:before{content:'';height:2px;background:linear-gradient(90deg,transparent,#62f3e2,#72b4ff,#c594ff,transparent)}
+.lab-head{padding:22px 25px 17px;display:flex;justify-content:space-between;align-items:start;gap:20px}
+.lab-head h2{font:600 clamp(22px,3.5vw,33px) 'Space Grotesk',sans-serif;letter-spacing:-.055em;margin:6px 0}
+.lab-head p{margin:2px 0;color:#99b4ce;font-size:12px;line-height:1.6}
+.lab-toolbar{padding:0 25px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.lab-mode{display:flex;gap:9px;align-items:center;max-width:100%;font:10px 'Space Mono',monospace;color:#86a4bf;line-height:1.45}
+.lab-mode i{width:7px;height:7px;flex:0 0 7px;background:#6ee7bc;box-shadow:0 0 12px #66e4bc;border-radius:50%}
+.lab-tabs{display:flex;padding:12px 25px 0;gap:8px;border-bottom:1px solid #a2cdff20}
+.lab-tabs button{border:1px solid transparent;border-bottom:2px solid transparent;background:transparent;color:#91afca;padding:11px 18px;font:700 11px 'Space Mono',monospace;letter-spacing:.05em}
+.lab-tabs button.active{color:#e8faff;border-bottom-color:#65dfff;background:linear-gradient(180deg,#63cfff08,#63cfff16)}
+.lab-page{padding:23px 25px 28px;overflow:auto;min-height:0;flex:1;scrollbar-width:thin;scrollbar-color:#47759b #08172a}
+.lab-page[hidden]{display:none}
+.lab-page h3{font:600 20px 'Space Grotesk',sans-serif;letter-spacing:-.03em;margin:0 0 8px}
+.lab-page p{font:12px/1.8 'DM Sans',sans-serif;color:#9bb7cd;margin:6px 0 13px}
+.lab-split{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:17px 0 20px}
+.lab-card{padding:17px;border:1px solid #a3cefb23;background:#0b1c30af;border-radius:7px;min-width:0}
+.lab-card .micro{display:block;margin-bottom:10px}
+.lab-card strong{font:600 16px 'Space Grotesk',sans-serif;color:#edfcff}
+.lab-card p{margin-bottom:0}
+.lab-callout{padding:13px 16px;border:1px solid #88c8e73e;background:#2a6e8f16;color:#accde3;font:11px/1.75 'DM Sans',sans-serif;border-radius:7px;margin:14px 0}
+.lab-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.lab-step{padding:13px;border:1px solid #a4dbff27;background:#08182cb0;border-radius:7px;color:#bed2e6;font:11px/1.65 'DM Sans',sans-serif}
+.lab-step b{display:inline-grid;place-items:center;width:22px;height:22px;background:#337bab45;color:#8ee4ff;border:1px solid #81cfff75;border-radius:50%;font:700 11px 'Space Mono';margin-bottom:8px}
+.lab-step strong{display:block;color:#e7f7ff;font-size:12px;margin-bottom:5px}
+.lab-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 7px}
+.lab-actions .solidbtn,.lab-actions .outlinebtn{border-radius:5px;padding:12px 15px}
+#dropZone{min-height:175px;border:1px dashed #7ecafc75;border-radius:11px;background:radial-gradient(ellipse at 50% 20%,#245d9c1c,transparent 70%),#091729aa;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:background .2s,border-color .2s;cursor:pointer}
+#dropZone.over,#dropZone:hover{border-color:#a5f5ff;background:#195c8d35;box-shadow:inset 0 0 40px #72d6ff15}
+#dropZone .dropicon{display:grid;place-items:center;font-size:32px;color:#8ee7ff;border:1px solid #90bfff63;width:55px;height:55px;border-radius:50%;margin-bottom:9px}
+#dropZone strong{font:600 17px 'Space Grotesk',sans-serif;color:#f1fbff}
+#dropZone small{color:#84a4ba;font:10px/1.7 'Space Mono',monospace;margin-top:8px}
+.code-shell{border:1px solid #91c4ee36;border-radius:7px;overflow:hidden;margin-top:14px;background:#030a15}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:#10223a;border-bottom:1px solid #8bbbe02c;color:#a4c9e4;font:10px 'Space Mono',monospace;letter-spacing:.05em}
+#codePreview{font:11.6px/1.7 'Space Mono',monospace;color:#b8e6fa;white-space:pre;overflow:auto;height:260px;padding:17px 20px;margin:0;tab-size:4}
+.lab-warning{color:#a3bbce;font:10px/1.7 'Space Mono',monospace;margin-top:12px}
+.data-lab .icon-btn{flex:0 0 36px}.code-head{flex-wrap:wrap;gap:5px}.code-head span{overflow-wrap:anywhere}
+@media(max-width:760px){#dataLabToggle{min-width:31px;padding:0 7px;font-size:14px}#dataLabToggle .btnlabel{display:none}#dataLabShade{padding:8px;align-items:center}.data-lab{max-height:95dvh;border-radius:9px}.lab-head{padding:17px 15px 13px}.lab-toolbar{padding:0 15px}.lab-tabs{padding:11px 12px 0;gap:2px}.lab-tabs button{padding:10px 10px;font-size:9px}.lab-page{padding:18px 14px 22px}.lab-split{grid-template-columns:1fr}.lab-steps{grid-template-columns:1fr}.lab-step{display:flex;gap:10px;align-items:center}.lab-step b{margin-bottom:0;flex:0 0 22px}.lab-step strong{margin:0}.lab-page h3{font-size:19px}.lab-actions button{flex:1;min-width:145px}#codePreview{height:210px;font-size:10px}.lab-mode{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.planet-orb,.planet-orb::after{animation:none}}
+
+
+/* ORBITAL GLOBAL ATLAS v3 — region-coded stellar navigation */
+:root{--us:#65d6ff;--developed:#c2a4ff;--emerging:#f6bc83;--frontier:#ac8fa7}
+#cosmos{background:radial-gradient(ellipse at 47% 50%,#111f38 0%,#08122b 29%,#030a1c 58%,#01030b 100%)}
+#cosmos::before{opacity:.65;animation:atlasDrift 45s ease-in-out infinite alternate}
+#aurora{filter:saturate(1.45) hue-rotate(-8deg);opacity:.8}
+#nebulaSurface{filter:saturate(1.43) contrast(1.08)}
+#cinemaFX{filter:saturate(1.17);opacity:.84}
+.scenehead .eyebrow{color:#9ed4ed;letter-spacing:.26em}
+.scenehead h1{text-shadow:0 2px 32px rgba(32,113,196,.28)}
+#atlasCoverage{display:flex;justify-content:center;align-items:center;gap:11px;flex-wrap:wrap;margin-top:13px}
+#atlasCoverage span{display:inline-flex;gap:6px;align-items:center;font:9px 'Space Mono',monospace;letter-spacing:.05em;color:#b9cfec;background:linear-gradient(135deg,#0b1b33c9,#0a1430aa);border:1px solid #7aadd13b;border-radius:14px;padding:5px 9px;box-shadow:0 6px 18px #0005}
+#atlasCoverage strong{color:#eaf8ff;font-weight:700}
+#atlasCoverage span:first-child{border-color:#68cbfa65}
+.node-label{border-radius:9px;border:1px solid #b5dfff50;border-left:2px solid var(--node-color,#8dd8ff);box-shadow:0 12px 28px #000a,0 0 18px color-mix(in srgb,var(--node-color,#8dd8ff) 18%,transparent);backdrop-filter:blur(12px);transition:opacity .25s,box-shadow .25s,transform .25s,background .25s}
+.node-label:focus-visible,.systemcard:focus-visible{outline:2px solid #bbf3ff;outline-offset:3px}
+.systemcard{border-radius:8px;background:linear-gradient(120deg,#112543dd,#07152acc);transition:transform .2s ease,border-color .2s ease}
+.systemcard:hover{transform:translateY(-5px);border-color:var(--card-color,#8bdfff)}
+.planet-orb{box-shadow:inset -18px -12px 32px rgba(0,0,0,.72),inset 6px 5px 18px #ffffff20,0 0 22px color-mix(in srgb,var(--node-color) 45%,transparent)}
+#warp{backdrop-filter:blur(0);background:radial-gradient(ellipse at center,#75dafe08 4%,#153e7866 27%,#0c1c4da6 53%,#000e 95%)}
+#warp.active{backdrop-filter:blur(3px)}
+@keyframes atlasDrift{0%{transform:translate3d(-2%,2%,0) scale(1)}100%{transform:translate3d(3%,-1%,0) scale(1.07)}}
+@media(max-width:760px){#atlasCoverage{gap:5px;margin-top:7px}#atlasCoverage span{font-size:8px;padding:4px 6px}.scenehead h1{font-size:clamp(18px,5vw,26px)}#cinemaFX{opacity:.62}}
+@media(prefers-reduced-motion:reduce){#cosmos::before{animation:none}}
+
+/* ORBITAL / COSMIC LIGHT ENGINE: calibrated HDR-like effects, zero asset dependencies */
+#cosmos{background:radial-gradient(ellipse at 50% 52%,#0b1430 0%,#060b1e 34%,#02050f 68%,#010209 100%)}
+#aurora{background:radial-gradient(ellipse at 16% 37%,rgba(24,91,145,.25),transparent 41%),radial-gradient(ellipse at 84% 31%,rgba(102,48,141,.22),transparent 39%),radial-gradient(ellipse at 62% 88%,rgba(8,68,115,.18),transparent 42%);filter:blur(38px) saturate(1.2);opacity:.76}
+#nebulaSurface{opacity:.9;filter:saturate(1.25) contrast(1.03)}
+#cinemaFX{opacity:.94;filter:none;mix-blend-mode:screen;pointer-events:none}
+#stars2d{opacity:.09}
+#vignette{box-shadow:inset 0 0 135px 22px rgba(0,1,9,.66)!important}
+#warp{background:radial-gradient(circle at center,rgba(192,237,255,.02) 0%,rgba(45,128,209,.11) 18%,rgba(13,29,70,.57) 48%,rgba(1,4,19,.94) 100%)}
+#warp.active{opacity:1;backdrop-filter:blur(2px)}
+#warp.active:before{content:'';position:absolute;inset:-50%;pointer-events:none;background:conic-gradient(from 20deg,transparent 0deg,rgba(130,201,255,.12) 4deg,transparent 11deg,transparent 25deg,rgba(192,226,255,.14) 30deg,transparent 38deg,transparent 77deg,rgba(99,149,255,.16) 84deg,transparent 92deg,transparent 154deg,rgba(196,151,255,.12) 158deg,transparent 165deg,transparent 254deg,rgba(82,215,255,.10) 260deg,transparent 268deg,transparent 360deg);mask-image:radial-gradient(circle,transparent 0 11%,black 21% 49%,transparent 69%);animation:spaceJump .72s cubic-bezier(.09,.63,.21,1) both;mix-blend-mode:screen}
+@keyframes spaceJump{0%{transform:scale(.10) rotate(-12deg);opacity:0}30%{opacity:.9}100%{transform:scale(1.75) rotate(18deg);opacity:0}}
+@media (max-width:760px){#cinemaFX{opacity:.75}#nebulaSurface{filter:saturate(1.13)}}
+@media (prefers-reduced-motion:reduce){#warp.active:before{animation:none;display:none}}
+
+
+/* Space hierarchy v4: true galaxy -> diffuse nebula -> cluster -> planetary system -> moon. */
+#nebulaSurface{filter:none!important;will-change:transform;contain:paint}
+#cinemaFX{filter:none!important;will-change:transform;contain:paint}
+#universe{contain:paint}
+.leftpanel,.rightpanel,.node-label{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#aurora{filter:none!important;opacity:.74}
+.planet-orb.moon-orb{filter:saturate(.72) brightness(.95);border-color:#b2c2de66;box-shadow:inset -12px -14px 24px #000e,inset 4px 4px 12px #eef4fa30,0 0 11px color-mix(in srgb,var(--node-color) 36%,transparent)}
+.planet-orb.moon-orb::after{width:133%;left:-17%;opacity:.35;transform:rotate(-17deg)}
+#sceneSub{letter-spacing:.1em}
+@media(max-width:760px){#nebulaSurface,#cinemaFX{filter:none!important}}
+
+/* Performance-only: composited sky and layout-free celestial labels. */
+#nebulaBackdrop{position:absolute!important;inset:-15px -17px;z-index:1;pointer-events:none;opacity:.70;mix-blend-mode:screen;will-change:transform;transform:translate3d(0,0,0)}
+#nebulaSurface{isolation:auto}
+.node-label,.planet-orb{left:0;top:0;will-change:translate;}
+
+/* Smooth visual motion belongs on the compositor; no fewer effects or celestial nodes. */
+#nebulaBackdrop{animation:orbitalParallax 30s ease-in-out infinite alternate;transform-origin:center;}
+@keyframes orbitalParallax{0%{transform:translate3d(-10px,8px,0) scale(1.012)}50%{transform:translate3d(9px,-7px,0) scale(1.02)}100%{transform:translate3d(-7px,-12px,0) scale(1.012)}}
+@media(prefers-reduced-motion:reduce){#nebulaBackdrop{animation:none}}
+</style>
+</head>
+<body>
+<div id="cosmos"><div id="aurora"></div><canvas id="nebulaBackdrop" aria-hidden="true"></canvas><canvas id="nebulaSurface" aria-hidden="true"></canvas><canvas id="cinemaFX" aria-hidden="true"></canvas><canvas id="universe" aria-label="Interactive 3D market universe; drag to orbit and select a constellation"></canvas><div id="stars2d"></div><div id="vignette"></div></div>
+<div id="intro"><div class="kicker">A NEW WAY TO SEE THE MARKET</div><h2>EVERY MARKET.<br>AN ENTIRE UNIVERSE.</h2><p>TRAVEL FROM GLOBAL EQUITIES TO A SINGLE SECURITY</p></div>
+<div id="hud">
+<header class="topbar">
+ <div class="brand"><div class="mark"></div><div><div class="brandname">ORBITAL</div><div class="brandline">THE GLOBAL EQUITY UNIVERSE</div></div></div>
+ <div class="topcenter"><span class="mode-title">CINEMATIC STELLAR ENGINE</span><span class="mode-title" style="color:#4e7895">//</span><span class="mode-title" id="dateRead">STRUCTURAL PREVIEW</span></div>
+ <div class="topactions"><span class="status" id="dataStatus" data-state="preview"><i class="status-dot"></i><span id="statusText">PREVIEW</span></span><button class="icon-btn mobilebtn" id="navToggle" title="Explore market tree" aria-label="Explore market tree">☷</button><button class="icon-btn mobilebtn" id="infoToggle" title="Show analysis" aria-label="Show analysis">◫</button><button class="icon-btn" id="dataLabToggle" title="Data Lab · Import / Google Colab" aria-label="Open Data Lab">◇ <span class="btnlabel">DATA LAB</span></button><button class="icon-btn" id="searchToggle" title="Search securities (/)" aria-label="Search">⌕</button><button class="icon-btn" id="homeBtn" title="Return to global universe" aria-label="Home">⌂</button><button class="icon-btn" id="helpBtn" title="Information and data upload" aria-label="Help and data">⋯</button></div>
+</header>
+<div class="content">
+ <aside class="leftpanel" id="leftpanel"><div class="panelpad"><div class="micro">01 / UNIVERSE NAVIGATOR</div><div class="crumbs" id="crumbs"></div><div class="divider"></div><div class="micro">CURRENT ORBIT</div><div class="panelhead" id="navTitle">Global Equities</div><div class="small dim" id="navSubtitle">Travel through the market's fundamental structure.</div><div class="divider"></div><div class="micro">DISCOVER NEXT</div><div class="nav-list" id="navList"></div><div class="mini-legend" id="coverageNote">Structure preview. Data sources will be checked when you open the file.</div></div></aside>
+ <div class="scenehead"><div class="eyebrow" id="sceneTag">SECTOR 00 // ALL MARKETS</div><h1 id="sceneTitle">The Global <span>Universe</span></h1><p id="sceneSub">CHOOSE A GALAXY TO BEGIN EXPLORING</p><div id="atlasCoverage" aria-label="Global coverage"><span><strong id="atlasCountryCount">—</strong> MARKETS</span><span><strong id="atlasStocksCount">—</strong> EQUITIES</span><span id="atlasAtlasStatus">PROXY-BASED WORLD MAP</span></div></div>
+ <div class="node-layer" id="nodeLayer"></div>
+ <aside class="rightpanel" id="rightpanel"><div class="panelpad"><div class="micro">02 / MARKET INTELLIGENCE</div><div class="panelhead" id="infoTitle">Universe overview</div><div class="small dim" id="infoSubtitle">Choose any luminous market cluster to travel deeper.</div><div class="statgrid"><div class="stat"><div class="caption">VISIBLE SYSTEMS</div><div class="number" id="metricSystems">4</div></div><div class="stat"><div class="caption">MAPPED SECURITIES</div><div class="number" id="metricSecurities">—</div></div><div class="stat"><div class="caption">SOURCE WEIGHT</div><div class="number" id="metricWeight">—</div></div><div class="stat"><div class="caption">ETF RETURN</div><div class="number" id="metricReturn">—</div></div></div><div class="divider"></div><div class="micro">RELATIVE STRUCTURE</div><div id="breakdown"></div><div class="divider"></div><div class="micro">SIGNAL ANALYSIS</div><p class="small dim" id="analysisText">A structural view of the world equity market, built from source-traceable market proxies.</p><button class="outlinebtn" id="exploreBtn" style="width:100%;margin-top:8px">ENTER SELECTED SYSTEM →</button></div></aside>
+ <div class="floatleft" role="group" aria-label="Visualization mode"><button id="structureMode" class="active">STRUCTURE</button><button id="returnMode">1D RETURN</button><button id="cinematicMode">AUTO ORBIT · ON</button><button id="effectsMode" title="Cycle visual quality: Ultra / Eco / Off">FX · ULTRA</button></div>
+ <div class="corner-coordinates" id="coordinates">ROTATION 00.00 / ZOOM 1.00</div>
+</div>
+<div class="bottom"><div class="bottommeta"><div class="micro">CONSTELLATION INDEX</div><div class="time" id="bottomCount">03 ACTIVE REALMS</div><div class="navhint">DRAG TO ORBIT · SCROLL TO ZOOM<br>TAP A CLUSTER TO FLY INSIDE</div></div><div class="systemcards" id="systemCards"></div></div>
+</div>
+<div id="warp"></div><div id="toast" role="status"></div>
+<div id="searchShade" role="dialog" aria-label="Search market universe"><div class="dialog"><div class="dialogtop"><h2>Find a system.</h2><button class="icon-btn" id="closeSearch" aria-label="Close search">×</button></div><p>Search a country, benchmark, sector, industry, company, or ticker.</p><input id="searchInput" class="searchbox" autocomplete="off" spellcheck="false" placeholder="Try: semiconductors, AAPL, Japan..."><div class="results" id="searchResults"></div></div></div>
+<div id="modalShade" role="dialog" aria-label="About ORBITAL and data"><div class="dialog"><div class="dialogtop"><h2>Mission control.</h2><button class="icon-btn" id="closeModal" aria-label="Close">×</button></div><p>ORBITAL is a stand-alone, hardware-accelerated 3D market atlas. Navigate with a mouse, touch gestures, keyboard, or the constellation index.</p><div class="notice"><strong>Data integrity</strong><div id="sourceInfo" style="margin-top:6px">Illustrative preview only. No simulated returns, prices, market caps, or official index-membership claims.</div></div><div class="micro">LOAD YOUR OWN DATA SNAPSHOT</div><p>Import an ORBITAL JSON file from the Python updater, or refresh the connected GitHub Pages feed. Imported data is processed in your browser.</p><div class="actionrow"><button class="solidbtn" id="uploadBtn">IMPORT JSON SNAPSHOT</button><button class="outlinebtn" id="refreshBtn">REFRESH GITHUB FEED</button><button class="outlinebtn" id="downloadData">EXPORT ACTIVE SNAPSHOT</button><input type="file" accept=".json,application/json" id="fileInput" style="display:none"></div><div class="divider"></div><div class="micro">FLIGHT CONTROLS</div><p>Drag to rotate · Pinch/scroll to zoom · Click a cluster to enter · Backspace to return · Home to reset · <b>/</b> to search · <b>Esc</b> to close dialogs. Use AUTO ORBIT to pause camera motion and STRUCTURE/1D RETURN to switch visual encodings.</p><div class="notice">ETF holdings are only proxies for benchmarks, not guaranteed index constituencies. Percentages are <b>source-ETF weights</b> and are not comparable across unrelated funds. Yahoo Finance returns are delayed and may be unavailable. No financial advice.</div></div></div>
+
+<div id="dataLabShade" role="dialog" aria-modal="true" aria-label="ORBITAL Data Lab">
+ <div class="data-lab">
+  <div class="lab-head"><div><div class="micro" style="color:#7de5ff">MISSION OPERATIONS / 03</div><h2>ORBITAL <span style="color:#8ee4ff">DATA LAB</span></h2><p>Worldwide equities, by region and country. Automatic GitHub sync or manual Colab import.</p></div><button class="icon-btn" id="closeDataLab" aria-label="Close Data Lab">×</button></div>
+  <div class="lab-toolbar"><div class="lab-mode"><i></i><span id="labStatusText">Checking source · initial data preview</span></div><div class="micro" id="labDateText">SNAPSHOT · NONE</div></div>
+  <div class="lab-tabs" role="tablist" aria-label="Data workflow"><button class="active" role="tab" aria-selected="true" id="tabAuto" data-page="auto">01 / LIVE SYNC</button><button role="tab" aria-selected="false" id="tabImport" data-page="import">02 / IMPORT FILE</button><button role="tab" aria-selected="false" id="tabColab" data-page="colab">03 / GOOGLE COLAB</button></div>
+  <div id="labCoverage" role="status" aria-live="polite" style="font:11px/1.6 monospace;color:#8bd1fb;padding:10px 17px;background:#06182b;border-bottom:1px solid #244a66">DEMO STRUCTURE · NO LIVE HOLDINGS OR QUOTES</div>
+  <section class="lab-page" id="labAuto" role="tabpanel"><h3>Automatic market-universe feed</h3><p>ORBITAL reads the newest published GitHub snapshot when opened. It uses six ETF holdings sources and rate-limited Yahoo Finance enrichment (not complete company fundamentals). Refreshing from this panel intentionally replaces an imported snapshot only after a successful download.</p>
+   <div class="lab-split"><div class="lab-card"><span class="micro">CURRENT SOURCE</span><strong id="labModeValue">Visual preview</strong><p id="labLastUpdate">No dated source loaded.</p></div><div class="lab-card"><span class="micro">PUBLISHED SOURCE</span><strong>GitHub / ORBITAL</strong><p>Separate daily GitHub Actions updater. Market holdings and generated metadata have as-of timestamps.</p></div></div>
+   <div class="lab-actions"><button class="solidbtn" id="labFetchNow">↻ &nbsp; LOAD LATEST GITHUB DATA</button><button class="outlinebtn" id="labExport">EXPORT ACTIVE JSON</button></div><div class="lab-callout">The app does not execute Python in your browser. When network access is unavailable or data is stale, it retains your last usable snapshot and identifies its source.</div>
+  </section>
+  <section class="lab-page" id="labImport" role="tabpanel" hidden><h3>Bring your own market snapshot</h3><p>Use the JSON file downloaded from the Google Colab code on the next tab. Importing updates the universe immediately, works from a standalone local HTML file, and needs no GitHub login.</p>
+   <div id="dropZone" role="button" tabindex="0" aria-label="Import ORBITAL JSON file"><div class="dropicon">⇧</div><strong>Drop ORBITAL JSON here</strong><small>OR CLICK TO CHOOSE · orbital-market-universe.json · MAX 25MB</small></div>
+   <div class="lab-steps"><div class="lab-step"><b>1</b><div><strong>Run the Colab code</strong>Generate the latest public ETF holdings snapshot.</div></div><div class="lab-step"><b>2</b><div><strong>Download JSON</strong>Colab automatically downloads the data file.</div></div><div class="lab-step"><b>3</b><div><strong>Import here</strong>All galaxies and securities reload instantly.</div></div></div>
+   <div class="lab-actions"><button class="solidbtn" id="labChooseFile">CHOOSE JSON FILE</button><button class="outlinebtn" id="labImportAuto">RETURN TO AUTOMATIC FEED</button></div>
+   <div class="lab-callout" id="importFeedback" role="status">Manual files are parsed locally in this browser. They are not sent to the server. A successful import remains selected across reloads in browsers that permit local storage.</div>
+  </section>
+  <section class="lab-page" id="labColab" role="tabpanel" hidden><h3>Google Colab · complete one-cell Python</h3><p>Run the same holdings-building logic as the GitHub updater, entirely from Google Colab. No paid API key required. It downloads a ready-to-import <b>orbital-market-universe.json</b>.</p>
+   <div class="lab-steps"><div class="lab-step"><b>1</b><div><strong>Open Colab</strong>Create a notebook on Google's free Colab service.</div></div><div class="lab-step"><b>2</b><div><strong>Copy & run</strong>Paste the complete code into one cell and run it.</div></div><div class="lab-step"><b>3</b><div><strong>Load data</strong>Import the downloaded JSON using the previous tab.</div></div></div>
+   <div class="lab-actions"><button class="solidbtn" id="copyColab">COPY COMPLETE COLAB CODE</button><button class="outlinebtn" id="downloadColab">DOWNLOAD .PY</button><button class="outlinebtn" id="openColab">OPEN GOOGLE COLAB ↗</button></div>
+   <div class="code-shell"><div class="code-head"><span>ORBITAL_COLAB_ONE_CELL.py</span><span>FULL DATA BUILDER · COPYABLE</span></div><pre id="codePreview" tabindex="0" aria-label="Complete one-cell Colab Python source"></pre></div>
+   <div class="lab-warning">PUBLIC ETF PORTFOLIO HOLDINGS ≠ OFFICIAL LICENSED INDEX CONSTITUENTS. YFINANCE COVERAGE IS BEST-EFFORT, NOT GUARANTEED OR EXCHANGE REAL-TIME. GOOGLE COLAB REQUIRES NETWORK ACCESS.</div>
+  </section>
+ </div>
+</div>
+<div id="progress" class="progress-line"></div>
+<script type="text/plain" id="colabSource"># ORBITAL GLOBAL ATLAS | Complete Google Colab one-cell global equity builder
+# Source: public ETF holdings (U.S. + developed ex-U.S. + emerging) and best-effort yfinance.
+# This is NOT the exhaustive global listed-company database nor licensed index membership.
+# Paste everything into ONE cell; the generated JSON downloads into your browser.
+import os, sys, subprocess
+os.environ.setdefault('ORBITAL_YF_MAX','120')
+subprocess.check_call([sys.executable,'-m','pip','install','-q','requests>=2.31','yfinance>=0.2.40'])
+
+#!/usr/bin/env python3
+"""ORBITAL GLOBAL ATLAS: source-traceable world equity market mapping from ETF holdings + optional Yahoo metadata.
+
+Usage: python scripts/orbital_update_data.py
+Writes data/orbital-market-universe.json and data/orbital-company-metadata.json.
+Fund holdings are NOT official index member lists. Do not redistribute Yahoo data in violation of its terms.
+"""
+import csv, io, json, logging, math, os, random, time
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    import requests
+except ImportError as e:
+    raise SystemExit('Install requests and yfinance: pip install requests yfinance') from e
+
+BASE = Path.cwd()  # Colab's /content, or current working directory
+OUT = BASE / 'data' / 'orbital-market-universe.json'
+CACHE = BASE / 'data' / 'orbital-company-metadata.json'
+# Explicit official iShares URLs. Holdings may be sampled and differ from benchmark membership.
+FUNDS = {
+    'IWV': ('239714', 'ishares-russell-3000-etf'),
+    'IWB': ('239707', 'ishares-russell-1000-etf'),
+    'IWM': ('239710', 'ishares-russell-2000-etf'),
+    'IEFA': ('244049', 'ishares-core-msci-eafe-etf'),
+    'IEMG': ('244050', 'ishares-core-msci-emerging-markets-etf'),
+    'EWC': ('239615', 'ishares-msci-canada-etf'),
+    # Single worldwide denominator for indicative market weights; the ACWI fund
+    # tracks large/mid caps and does NOT fully cover small-cap or frontier stocks.
+    'ACWI': ('239600', 'ishares-msci-acwi-etf'),
+}
+LOG = logging.getLogger('orbital')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+
+def fnum(value, default=None):
+    try:
+        x = float(str(value).replace(',', '').replace('$','').replace('%','').strip())
+        return round(x, 8) if math.isfinite(x) else default
+    except (TypeError, ValueError):
+        return default
+
+
+def ensure_weight_coverage(records, fund):
+    """Reconstruct missing portfolio ETF weights from the ETF equity sleeve USD market values.
+
+    These are NOT company market capitalizations or global stock weights.
+    """
+    if not records:
+        return records
+    missing = sum(r.get('weight') is None for r in records)
+    if missing / len(records) < 0.75:
+        return records
+    total = sum((r.get('holding_value') or 0.0) for r in records)
+    if total <= 0 or not math.isfinite(total):
+        LOG.warning('%s: holding weights unavailable and ETF holdings values missing', fund)
+        return records
+    for r in records:
+        value = r.get('holding_value')
+        r['weight'] = round(100.0 * value / total, 8) if value is not None and value >= 0 else None
+    LOG.warning('%s: reconstructed %s source ETF holding weights (NOT issuer market caps)', fund, missing)
+    return records
+
+
+def clean_ticker(raw):
+    s = str(raw or '').strip().upper()
+    if not s or s in {'-', 'N/A', 'CASH', 'USD'}: return ''
+    # BlackRock represents class symbols with whitespace; Yahoo uses a dash.
+    if s.count(' ') == 1 and len(s.split(' ')[1]) <= 2: s = s.replace(' ', '-')
+    return s
+
+
+def load_fund(session, fund):
+    pid, slug = FUNDS[fund]
+    hosts = ['https://www.blackrock.com/us/individual/products', 'https://www.ishares.com/us/products']
+    errors = []
+    for host in hosts:
+        url = f'{host}/{pid}/{slug}/latest-holdings.csv'
+        for attempt in range(3):
+            try:
+                res = session.get(url, timeout=55, headers={'Accept': 'text/csv, text/plain, */*'})
+                res.raise_for_status()
+                body = res.content.decode('utf-8-sig', 'replace')
+                lines = body.splitlines()
+                start = next((i for i, line in enumerate(lines) if line.startswith('Ticker,Name,') and ',Sector,Asset Class,' in line), None)
+                if start is None: raise ValueError('Holdings header not found; possible remote format change or HTML response')
+                asof = ''
+                for line in lines[:start]:
+                    if line.startswith('Fund Holdings as of,'):
+                        fields = next(csv.reader([line])); asof = fields[1] if len(fields) > 1 else ''
+                records = []
+                for row in csv.DictReader(io.StringIO('\n'.join(lines[start:]))):
+                    if row.get('Asset Class', '').strip() != 'Equity': continue
+                    symbol = clean_ticker(row.get('Ticker'))
+                    if not symbol or len(symbol) > 22: continue
+                    w = fnum(row.get('Weight (%)'))
+                    mv = fnum(row.get('Market Value'))
+                    if mv is None or mv <= 0: continue
+                    records.append({
+                        'ticker':symbol,
+                        'name':str(row.get('Name') or symbol).strip().title(),
+                        'sector':str(row.get('Sector') or 'Unclassified').strip(),
+                        'country':str(row.get('Location') or 'Unspecified').strip(),
+                        'weight':w,
+                        'holding_value':round(mv,2),
+                        'exchange':str(row.get('Exchange') or '').strip(),
+                        'isin':str(row.get('ISIN') or '').strip(),
+                        'sedol':str(row.get('SEDOL') or '').strip(),
+                        'fund_industry':str(row.get('Industry') or row.get('Sub-Industry') or '').strip()[:90],
+                    })
+                if len(records) < (60 if fund == 'EWC' else 500):
+                    raise ValueError(f'Suspicious count {len(records)}; refusing to publish incomplete holdings')
+                records = ensure_weight_coverage(records, fund)
+                LOG.info('%s: %s equity securities as of %s', fund, len(records), asof)
+                return {'fund':fund,'asof':asof,'source_url':url,'records':records}
+            except Exception as exc:
+                errors.append(f'{url} attempt {attempt+1}: {exc}')
+                time.sleep(min(2**attempt,4))
+    raise RuntimeError('Failed to fetch '+fund+'; '+ ' | '.join(errors[-5:]))
+
+
+def cache_key(row):
+    """Avoid false metadata joins when international tickers coincide with US tickers."""
+    return row['ticker'] if row['country']=='United States' else row['country']+'|'+row['ticker']
+
+
+def yahoo_symbol(row):
+    """Exchange-qualified symbols only where exchange notation is unambiguous.
+
+    Reject unknown international symbols instead of silently returning a US namesake.
+    Yahoo symbols and sector labels are not a licensed global security master.
+    """
+    symbol=row['ticker']
+    if row['country']=='United States': return symbol
+    exchange=(row.get('exchange') or '').lower()
+    pairs=[
+      (('tokyo','japan'),'.T'),(('london','united kingdom'),'.L'),
+      (('xetra','germany'),'.DE'),(('frankfurt',),'.F'),
+      (('paris',),'.PA'),(('amsterdam',),'.AS'),(('milan','borsa italiana'),'.MI'),
+      (('madrid',),'.MC'),(('zurich','six swiss'),'.SW'),
+      (('hong kong',),'.HK'),(('shanghai',),'.SS'),(('shenzhen',),'.SZ'),
+      (('national stock exchange of india',),'.NS'),(('bombay',),'.BO'),
+      (('taiwan stock',),'.TW'),(('taipei',),'.TWO'),
+      (('korea exchange',),'.KS'),(('kosdaq',),'.KQ'),
+      (('australian',),'.AX'),(('toronto',),'.TO'),(('tsx venture',),'.V'),
+      (('bovespa','sao paulo'),'.SA'),(('johannesburg',),'.JO'),
+      (('singapore',),'.SI'),(('oslo',),'.OL'),(('stockholm',),'.ST'),
+      (('copenhagen',),'.CO'),(('helsinki',),'.HE'),(('brussels',),'.BR'),
+      (('mexico',),'.MX'),(('new zealand',),'.NZ'),(('tel aviv',),'.TA'),
+      (('istanbul',),'.IS'),(('warsaw',),'.WA'),(('vienna',),'.VI'),
+    ]
+    for labels,suffix in pairs:
+        if any(token in exchange for token in labels):return symbol+suffix
+    return None
+
+
+def enrich_yfinance(rows, cache, max_queries=85):
+    """Across-region, cached best-effort metadata; no assumption of full coverage."""
+    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return cache,0
+    try: import yfinance as yf
+    except ImportError:
+        LOG.warning('yfinance unavailable; ETF holdings only');return cache,0
+    by_realm={'us':[], 'developed':[], 'emerging':[]}
+    seen=set()
+    for row in sorted(rows,key=lambda r:-(r.get('holding_value') or 0)):
+        key=cache_key(row)
+        if key in seen or (cache.get(key) or {}).get('industry'):continue
+        seen.add(key)
+        yahoo=yahoo_symbol(row)
+        if not yahoo:continue
+        bucket='us' if row['country']=='United States' else ('emerging' if row.get('_fund')=='IEMG' else 'developed')
+        by_realm[bucket].append((key,yahoo,row['country']))
+    selected=[]
+    # Interleave market realms so a US mega-cap never consumes the global query budget.
+    while len(selected)<max_queries and any(by_realm.values()):
+        for realm in ('us','developed','emerging'):
+            if len(selected)>=max_queries:break
+            if by_realm[realm]:selected.append(by_realm[realm].pop(0))
+    updated=0
+    for idx,(key,symbol,country) in enumerate(selected):
+        try:
+            info=yf.Ticker(symbol).get_info()
+            if not isinstance(info,dict) or not info.get('symbol'):continue
+            cache[key]={
+                'symbol':symbol,'country':country,
+                'industry':str(info.get('industry') or '').strip()[:90],
+                'sector':str(info.get('sector') or '').strip()[:90],
+                'market_cap':fnum(info.get('marketCap')),
+                'trailing_pe':fnum(info.get('trailingPE')),
+                'forward_pe':fnum(info.get('forwardPE')),
+                'currency':str(info.get('currency') or '')[:8],
+                'updated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            }
+            updated+=1
+        except Exception as exc:
+            if idx<3:LOG.warning('Yahoo unavailable for %s: %s',symbol,str(exc)[:130])
+        if idx%20==0:LOG.info('Global Yahoo enrichment %s/%s processed',idx+1,len(selected))
+        time.sleep(.25)
+    return cache,updated
+
+
+def benchmark_returns():
+    if os.environ.get('ORBITAL_NO_YFINANCE') == '1': return {}
+    try:
+        import yfinance as yf
+        frames = yf.download(' '.join(FUNDS), period='15mo', interval='1d', auto_adjust=True, progress=False,
+                             group_by='ticker', threads=2, timeout=20)
+        result={}
+        for fund in FUNDS:
+            try:
+                close = frames[fund]['Close'].dropna()
+                if len(close)<3: continue
+                now = float(close.iloc[-1]); year = int(close.index[-1].year)
+                yseries = close[close.index.year < year]
+                start_y = float(yseries.iloc[-1]) if len(yseries) else None
+                result[fund]={
+                    '1d':round(100*(now/float(close.iloc[-2])-1),3),
+                    '1m':round(100*(now/float(close.iloc[-22 if len(close)>=22 else 0])-1),3) if len(close)>2 else None,
+                    'ytd':round(100*(now/start_y-1),3) if start_y else None,
+                    'asof':str(close.index[-1].date()),
+                }
+            except Exception: pass
+        return result
+    except Exception as exc:
+        LOG.warning('Benchmark quotes failed (holdings still valid): %s', str(exc)[:200]); return {}
+
+
+def leaf(row, ticker_cache, fund, returns):
+    meta=ticker_cache.get(cache_key(row),{})
+    return {
+        'id':f"{fund}-{row['ticker']}",'name':row['name'], 'kind':'stock','ticker':row['ticker'],
+        'sector':row['sector'],'industry':meta.get('industry') or row.get('fund_industry') or None,
+        'weight':row['weight'],'marketCap':meta.get('market_cap'),
+        'pe':meta.get('trailing_pe'), 'marketCapCurrency':meta.get('currency'), 'country':row['country'],
+        'exchange':row['exchange'], 'isin':row.get('isin') or None,
+        'sedol':row.get('sedol') or None, 'returns':None,
+        'source':fund,
+    }
+
+
+def branch(id, name, kind, children, source=None, subtitle=None, returns=None):
+    # Parent weights are source-local holdings weights; never add across ETF sources.
+    weights=[x.get('weight') for x in children]
+    total = round(sum(x for x in weights if isinstance(x,(float,int))),4) if source and all(x is not None for x in weights) else None
+    return {'id':id, 'name':name, 'kind':kind, 'subtitle':subtitle, 'source':source,
+            'weight':total, 'returns':returns, 'children':children}
+
+
+def by_sector(rows, cache, source, idprefix):
+    sectors=defaultdict(list)
+    for r in rows: sectors[r['sector']].append(r)
+    out=[]
+    for sector, members in sorted(sectors.items(), key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
+        industries=defaultdict(list)
+        for r in members:
+            industry=(cache.get(cache_key(r)) or {}).get('industry') or r.get('fund_industry') or 'Industry unclassified'
+            industries[industry].append(r)
+        indnodes=[]
+        for ind, records in sorted(industries.items(),key=lambda t:-sum(x.get('weight') or 0 for x in t[1])):
+            ls=[leaf(r, cache, source, None) for r in sorted(records,key=lambda x:-(x.get('weight') or 0))]
+            indnodes.append(branch(f'{idprefix}/{sector}/{ind}',ind,'industry',ls,source=source))
+        out.append(branch(f'{idprefix}/{sector}',sector,'sector',indnodes,source=source))
+    return out
+
+
+# Geographic groupings represent navigation only, not index provider market classifications.
+# Developed/emerging realm memberships come directly from IEFA/EWC/IEMG fund mandates.
+REGION_COUNTRIES = {
+  'Europe': {'United Kingdom','UK','France','Germany','Italy','Spain','Netherlands','Switzerland','Sweden','Denmark','Norway','Finland','Belgium','Austria','Ireland','Portugal','Poland','Greece','Czech Republic','Czechia','Hungary','Romania','Turkey','Türkiye','Iceland','Luxembourg'},
+  'Asia-Pacific': {'Japan','Australia','New Zealand','Hong Kong','Singapore','South Korea','Korea (South)','Taiwan','China','India','Indonesia','Malaysia','Philippines','Thailand','Vietnam','Pakistan','Sri Lanka'},
+  'North America': {'Canada','United States','Mexico'},
+  'Latin America': {'Brazil','Chile','Colombia','Peru','Argentina'},
+  'Middle East & Africa': {'Saudi Arabia','South Africa','United Arab Emirates','UAE','Qatar','Kuwait','Israel','Egypt','Morocco','Nigeria','Bahrain','Oman','Jordan'},
+}
+COUNTRY_INDEX_CONTEXT={
+ 'Japan':'TOPIX / Nikkei 225','United Kingdom':'FTSE 100 / FTSE All-Share',
+ 'Germany':'DAX / CDAX','France':'CAC 40 / SBF 120','Canada':'S&P/TSX Composite',
+ 'Australia':'S&P/ASX 200','India':'Nifty 50 / Nifty 500','China':'CSI 300 / MSCI China',
+ 'Taiwan':'TAIEX','South Korea':'KOSPI / KOSDAQ','Korea (South)':'KOSPI / KOSDAQ',
+ 'Brazil':'Ibovespa','Mexico':'S&P/BMV IPC','Switzerland':'SMI / SPI',
+ 'Netherlands':'AEX','Spain':'IBEX 35','Italy':'FTSE MIB',
+ 'South Africa':'FTSE/JSE All Share','Saudi Arabia':'Tadawul All Share',
+ 'Singapore':'Straits Times','Hong Kong':'Hang Seng',
+}
+
+def geography(country):
+    for label,countries in REGION_COUNTRIES.items():
+        if country in countries:return label
+    return 'Other / not mapped'
+
+
+def weight_tiers(rows,cache,source,idprefix):
+    """Country-relative ETF portfolio weight ranks; NEVER label as actual cap sizes."""
+    rows=sorted(rows,key=lambda r:-(r.get('weight') or 0))
+    n=len(rows)
+    if n<=5:
+        specs=[('constituents','Country constituents · ETF proxy',rows)]
+    else:
+        h=max(1,int(math.ceil(n*.15)))
+        m=max(h+1,int(math.ceil(n*.50)))
+        specs=[('leaders','Largest allocations · top 15%',rows[:h]),
+               ('core','Core allocations · next 35%',rows[h:m]),
+               ('tail','Smaller allocations · remaining 50%',rows[m:])]
+    return [branch(idprefix+'/'+key,title,'segment',by_sector(members,cache,source,idprefix+'/'+key),
+                   source=source,subtitle='Relative position ranks WITHIN '+source+' ETF holdings for this country; NOT company market-cap classifications')
+            for key,title,members in specs if members]
+
+
+def normalized_country(country):
+    aliases={'South Korea':'Korea (South)','Korea, Republic of':'Korea (South)',
+             'UK':'United Kingdom','Türkiye':'Turkey','Czechia':'Czech Republic',
+             'UAE':'United Arab Emirates'}
+    return aliases.get(str(country or '').strip(),str(country or '').strip())
+
+
+def add_global_weights(root, holdings):
+    """Use ONE common ACWI ETF equity sleeve as an *indicative* global denominator.
+
+    Do not sum unrelated IWB/IWM/IEFA/IEMG portfolio weights or confuse holding
+    count with issuer capitalization. For countries absent from the ACWI basket,
+    leave worldWeight null instead of inventing market exposure.
+    """
+    basket=(holdings.get('ACWI') or {}).get('records') or []
+    country_raw=defaultdict(float)
+    for row in basket:
+        v=row.get('holding_value')
+        if isinstance(v,(float,int)) and math.isfinite(v) and v>0:
+            country_raw[normalized_country(row['country'])]+=v
+    total=sum(country_raw.values())
+    if total<=0 or len(country_raw)<20:
+        return {'available':False,'source':'ACWI','reason':'global equity anchor unavailable or incomplete',
+                'countries_anchored':0,'mapped_share_pct':None}
+    cw={country:100*value/total for country,value in country_raw.items()}
+    def tag(node,amount):
+        if amount is None or not math.isfinite(amount) or amount<0:return
+        node['worldWeight']=round(amount,7)
+    def allocate(node,amount):
+        tag(node,amount)
+        children=node.get('children') or []
+        if not children:return
+        denom=sum(max(0,c.get('weight') or 0) for c in children)
+        if denom>0:
+            for c in children:
+                w=max(0,c.get('weight') or 0)
+                allocate(c,amount*w/denom)
+        elif len(children)==1:
+            allocate(children[0],amount)
+        # No comparable denominators: don't fabricate a cross-source allocation.
+    def summarize(node):
+        for child in node.get('children') or []:summarize(child)
+        if node.get('kind') in ('continent','galaxy'):
+            child_amounts=[c.get('worldWeight') for c in node.get('children') or []]
+            valid=[x for x in child_amounts if isinstance(x,(int,float))]
+            if valid:tag(node,sum(valid))
+    us,dev,em,gap=root['children']
+    usshare=cw.get('United States')
+    if usshare is not None:
+        tag(us,usshare);market=us['children'][0];tag(market,usshare)
+        # Derive Russell family allocation from IWV positions, a *single* U.S.
+        # fund denominator. Relative positions inside IWB/IWM still use the
+        # respective fund's weights, never the fund's total dollar AUM.
+        iwb={r['ticker'] for r in holdings['IWB']['records']}
+        iwm={r['ticker'] for r in holdings['IWM']['records'] if r['ticker'] not in iwb}
+        parts={'IWB':0.,'IWM':0.,'IWV':0.}
+        for r in holdings['IWV']['records']:
+            ticker=r['ticker'];w=max(0,r.get('weight') or 0)
+            bucket='IWB' if ticker in iwb else 'IWM' if ticker in iwm else 'IWV'
+            parts[bucket]+=w
+        denom=sum(parts.values())
+        if denom>0:
+            for segment in market['children']:
+                source=segment.get('source')
+                if source in parts:allocate(segment,usshare*parts[source]/denom)
+    # ETF source holdings may include cross-listed or off-mandate securities.
+    # A single country's ACWI market share must NEVER be counted twice.
+    # Attribute the country to the realm with the broadest mapped constituent
+    # coverage. The minority off-mandate country node stays visible, unweighted.
+    candidate_owners={}
+    all_country_nodes=[]
+    for realm in (dev,em):
+        for region in realm['children']:
+            for country in region['children']:
+                key=normalized_country(country['name'])
+                def leaf_count(n):
+                    return 1 if n.get('kind')=='stock' else sum(leaf_count(x) for x in n.get('children',[]))
+                count=leaf_count(country)
+                all_country_nodes.append((country,key,count))
+                if key not in candidate_owners or count>candidate_owners[key][1]:
+                    candidate_owners[key]=(country,count)
+    covered=0
+    for country,key,count in all_country_nodes:
+        if candidate_owners[key][0] is not country:continue
+        w=cw.get(key)
+        if w is not None:allocate(country,w);covered+=1
+    summarize(dev);summarize(em)
+    tag(root,100.)
+    mapped_share=sum(x.get('worldWeight') or 0 for x in (us,dev,em))
+    if mapped_share>100.03:
+        raise RuntimeError(f'Invalid global market shares: {mapped_share:.3f}% exceeds the 100% ACWI anchor')
+    return {'available':True,'source':'ACWI','asof':holdings['ACWI'].get('asof'),
+            'weight_basis':'Single ACWI ETF equity-sleeve USD market values; indicative large/mid-cap global proxy, not issuer market capitalizations',
+            'countries_anchored':covered+(1 if usshare is not None else 0),
+            'reference_countries':len(cw),
+            'mapped_share_pct':round(mapped_share,2),
+            'unmapped_share_pct':round(max(0,100-mapped_share),2),
+            'us_pct':round(usshare,2) if usshare is not None else None,
+            'developed_ex_us_pct':round(dev.get('worldWeight'),2) if isinstance(dev.get('worldWeight'),(int,float)) else None,
+            'emerging_pct':round(em.get('worldWeight'),2) if isinstance(em.get('worldWeight'),(int,float)) else None}
+
+
+def build(holdings, cache, performance):
+    # One authoritative place for each stock within a realm. Never sum fund-level
+    # portfolio weights from distinct source ETFs into a fictional global weight.
+    iwv=holdings['IWV']['records'];iwb=holdings['IWB']['records'];iwm=holdings['IWM']['records']
+    big={r['ticker'] for r in iwb};small=[r for r in iwm if r['ticker'] not in big]
+    union=big|{r['ticker'] for r in small}
+    extra=[r for r in iwv if r['ticker'] not in union]
+    large=branch('us/r1000','Russell 1000 · IWB proxy','benchmark',by_sector(iwb,cache,'IWB','us/r1000'),
+                 source='IWB',returns=performance.get('IWB'),subtitle='IWB ETF portfolio proxy for the Russell 1000; exact index membership is not claimed')
+    smallnode=branch('us/r2000','Russell 2000 · IWM proxy','benchmark',by_sector(small,cache,'IWM','us/r2000'),
+                 source='IWM',returns=performance.get('IWM'),subtitle='IWM ETF holdings excluding tickers also in IWB; not the official Russell membership list')
+    uchildren=[large,smallnode]
+    if extra:
+        uchildren.append(branch('us/iwv-only','Additional IWV-only names','benchmark',by_sector(extra,cache,'IWV','us/iwv-only'),source='IWV',subtitle='IWV positions absent from IWB and IWM; excludes duplicates'))
+    us=branch('us','United States','galaxy',[
+        branch('us/r3000','Russell 3000 · ETF coverage','market',uchildren,returns=performance.get('IWV'),
+               subtitle='U.S. broad market: IWB + IWM unique holdings, with additional IWV-only names; source weights not additive')
+    ],returns=performance.get('IWV'),subtitle='One U.S. equity galaxy within the global universe, not the global organizing framework')
+
+    # Developed & emerging realms are assembled from the market-specific holdings
+    # of each fund. Region grouping is geography, while fund classification is MSCI.
+    def make_regions(items,realm):
+        # items: (source,record); each country sourced from one canonical ETF here.
+        buckets=defaultdict(lambda:defaultdict(list))
+        for fund,row in items:buckets[geography(row['country'])][(row['country'],fund)].append(row)
+        regions=[]
+        for rname,group in buckets.items():
+            countries=[]
+            for (country,fund),rows in sorted(group.items(),key=lambda a:-len(a[1])):
+                index_ref=COUNTRY_INDEX_CONTEXT.get(country)
+                subtitle=f'{fund} ETF constituents; market benchmark'+(' references (context only): '+index_ref if index_ref else ' unavailable')+'. No claim of national-index membership.'
+                country_id=realm+'/'+rname+'/'+country
+                countries.append(branch(country_id,country,'country',weight_tiers(rows,cache,fund,country_id),
+                                        source=fund,subtitle=subtitle))
+            regions.append(branch(realm+'/'+rname,rname,'continent',countries,
+                       subtitle='Geographic grouping of countries in the '+realm+' ETF proxy universe; weights across fund sources are not additive'))
+        return sorted(regions,key=lambda x:-sum(sum(1 for z in c.get('children',[])) for c in x['children']))
+
+    dmrows=[('IEFA',row) for row in holdings['IEFA']['records']]+[('EWC',row) for row in holdings['EWC']['records']]
+    dev=branch('developed','Developed international','galaxy',make_regions(dmrows,'developed'),
+               subtitle='MSCI EAFE IMI (IEFA) + Canada (EWC) country exposures; excludes the United States. These are ETF holdings proxies, not globally additive weights.')
+    emrows=[('IEMG',row) for row in holdings['IEMG']['records']]
+    emerging=branch('emerging','Emerging markets','galaxy',make_regions(emrows,'emerging'),
+                    returns=performance.get('IEMG'),subtitle='MSCI EM IMI exposures in IEMG; MSCI market categories (not FTSE Russell classifications)')
+    frontier=branch('frontier','Frontier & uncovered markets','gap',[],
+           subtitle='Not mapped: current free ETF inputs do not provide trustworthy frontier-market constituent coverage. No fictitious securities are displayed.')
+    root=branch('global','Global Equity Universe','universe',[us,dev,emerging,frontier],
+                subtitle='Worldwide equity map: U.S., developed international, emerging, plus frontier coverage gaps. Source-specific holdings are NOT worldwide market-cap weights.')
+    def collect(node):
+        if node.get('kind')=='stock':return [node]
+        out=[]
+        for child in node.get('children',[]):out.extend(collect(child))
+        return out
+    global_anchor=add_global_weights(root,holdings)
+    stocks=collect(root)
+    n_industry=sum(bool(x.get('industry')) for x in stocks)
+    n_cap=sum(isinstance(x.get('marketCap'),(int,float)) for x in stocks)
+    countries={x.get('country') for x in stocks if x.get('country')}
+    realm_counts={n['id']:len(collect(n)) for n in root['children']}
+    quality={
+      'mapped_security_nodes':len(stocks),
+      'global_weighting':global_anchor,
+      'unique_security_ids':len({(x.get('country'),x.get('ticker')) for x in stocks}),
+      'country_count':len(countries),
+      'industry_classified_nodes':n_industry,
+      'industry_coverage_pct':round(100*n_industry/max(1,len(stocks)),1),
+      'market_cap_nodes':n_cap,
+      'market_cap_coverage_pct':round(100*n_cap/max(1,len(stocks)),1),
+      'stock_return_nodes':0,
+      'realm_security_counts':realm_counts,
+      'etf_source_holdings':{f:len(h['records']) for f,h in holdings.items()},
+      'official_index_membership':False,
+      'frontier_constituent_coverage':False,
+      'listed_equities_exhaustive':False,
+      'size_tiers_are_verified_market_cap':False,
+      'acwi_reference_method':'ACWI equity holding values (USD), not fund size and not sum of unrelated ETF allocations',
+      'security_id_field':'ISIN where provided; country/exchange/ticker fallback',
+      'warning':'ETF holdings are a sampled investable proxy, not the total worldwide listed-equity universe. Country tiers are ETF allocation ranks, not issuer market-cap segments.',
+    }
+    return {
+      'schema':'orbital-v1','mode':'holdings-proxy','generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+      'root':root,'quality':quality,
+      'sources':{f:{'holdings':len(h['records']),'holdings_asof':h['asof'],'url':h['source_url']} for f,h in holdings.items()},
+      'methodology':{
+       'world':'Holdings mapped from IWB, IWM, IWV, IEFA, EWC, IEMG. ACWI is an optional global *weighting anchor* only, not added as duplicate securities. ACWI large/mid-cap exposure is not a full all-cap global market census.',
+       'classification':'Developed versus emerging uses the ETF/MSCI mandates; geographic region is a display grouping. Classification can differ from FTSE Russell.',
+       'country':'Countries use holdings Location; not country of revenue, listing or issuer domicile necessarily.',
+       'size':'Country holding tiers are rank percentiles of allocation within one ETF and one country, NOT issuer market-cap classifications. worldWeight uses a single global ETF proxy and is not verified issuer capitalization. Galaxy radius is a visual square-root scale with legibility floors.',
+       'weights':'worldWeight uses one ACWI ETF equity-sleeve market-value denominator (USD); deeper nodes allocate that share using local source ETF weights, not issuer free-float market capitalizations. Other weight remains source ETF-local. Null means unknown.',
+       'sector':'11 standardized sector labels mapped from the iShares sector field; labels are not independently audited GICS membership.',
+       'industry':'Optional Yahoo industry (not official GICS subindustry) or issuer-provided industry; unclassified names retained.',
+       'returns':'ETF adjusted-close returns where Yahoo Finance data succeeds; not individual-stock returns.',
+       'coverage':'Broad but incomplete global coverage. Some frontier markets and uninvestable/micro-cap listings excluded; Yahoo access may be rate limited.',
+      }
+    }
+
+
+def main():
+    OUT.parent.mkdir(parents=True,exist_ok=True)
+    session=requests.Session()
+    session.headers.update({'User-Agent':'Mozilla/5.0 (compatible; ORBITAL-Research/1.0; holdings analysis)'})
+    holdings={}
+    for fund in FUNDS:
+        try: holdings[fund]=load_fund(session,fund)
+        except Exception as exc:
+            if fund=='ACWI':
+                LOG.warning('Global ACWI weighting anchor not available; publishing holdings WITHOUT world shares: %s',str(exc)[:180])
+            else: raise
+    cache={}
+    if CACHE.exists():
+        try: cache=json.loads(CACHE.read_text(encoding='utf-8'))
+        except Exception: LOG.warning('Ignoring damaged metadata cache')
+    # A fresh Colab runtime otherwise starts from zero industry mappings every run.
+    # Reuse previously published, non-secret Yahoo metadata when no local cache exists.
+    # Failure is harmless; the stock universe still builds from the current holdings.
+    if not cache:
+        try:
+            url='https://raw.githubusercontent.com/denism2013/market-dex-data/main/data/orbital-company-metadata.json'
+            response=session.get(url, timeout=12)
+            response.raise_for_status()
+            published=response.json()
+            if isinstance(published,dict):
+                cache={str(k):v for k,v in published.items() if isinstance(v,dict)}
+                LOG.info('Reused %d previously published company metadata records',len(cache))
+        except Exception as exc:
+            LOG.warning('Published metadata unavailable; rebuilding gradually (%s)',str(exc)[:120])
+    global_enrichment=[]
+    for fund in ('IWB','IWM','IWV','IEFA','IEMG','EWC'):
+        for record in holdings[fund]['records']:
+            global_enrichment.append({**record,'_fund':fund})
+    cache, n=enrich_yfinance(global_enrichment,cache,int(os.environ.get('ORBITAL_YF_MAX','85')))
+    performance=benchmark_returns()
+    data=build(holdings,cache,performance)
+    count=data['quality']['mapped_security_nodes']
+    if count<4000 or data['quality']['country_count']<25: raise RuntimeError(f'Refusing incomplete global snapshot ({count} positions, {data["quality"]["country_count"]} countries)')
+    LOG.info('Global weighting anchor: %s',data['quality']['global_weighting'])
+    OUT.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    CACHE.write_text(json.dumps(cache,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    LOG.info('Wrote %s (%s bytes), %s mapped equity positions across global realms, %s Yahoo updates',OUT,OUT.stat().st_size,count,n)
+
+
+
+
+
+main()
+try:
+    from google.colab import files
+    print('ORBITAL Global Atlas snapshot ready. Import JSON using DATA LAB → IMPORT FILE.')
+    files.download(str(OUT))
+except ImportError:
+    print('Snapshot saved:',OUT.resolve())
+
+</script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), ESC=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const FEED='https://denism2013.github.io/market-dex-data/data/orbital-market-universe.json';
+const COLORS={universe:'#a8d9ff',region:'#79caff',benchmark:'#75a6f9',segment:'#91ddff',country:'#b5a4ff',sector:'#91d9f5',industry:'#ffca86',stock:'#b6f4d5'};
+const SECTORS={'Information Technology':'#74b9ff','Financials':'#7fe5d0','Health Care':'#c99bfa','Consumer Discretionary':'#ffac94','Consumer Staples':'#e3c789','Industrials':'#8fc3ed','Energy':'#ffbb6c','Materials':'#b3d68c','Utilities':'#98ace5','Real Estate':'#d5a3d5','Communication':'#a6c4ff','Communication Services':'#a6c4ff'};
+const REGIONS={'us':'#64b8fa','developed':'#ac8df4','emerging':'#e3a765','frontier':'#ad789e'};
+const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
+const pcent=n=>typeof n==='number'&&Number.isFinite(n)?(n>0?'+':'')+n.toFixed(2)+'%':'—';
+const weight=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(n<.1?3:2)+'%':'—';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Distinct visuals: supercluster -> nebula -> country galaxy -> size cluster
+// -> ONE central solar system of 11 sector planets -> industry systems -> stock planets.
+function cosmicForm(n){
+ // Each level has its own silhouette. Supercluster -> country galaxy -> cap
+ // cluster -> sector solar system -> industry star -> company planet.
+ if(n.kind==='gap')return 'void';
+ if(n.kind==='universe')return 'cosmos';
+ if(n.kind==='galaxy')return 'supercluster';
+ if(n.kind==='continent')return 'nebula';
+ if(n.kind==='country')return 'galaxy';
+ if(n.kind==='market'&&/r3000$/i.test(n.id||''))return 'galaxy';
+ if(['market','benchmark','segment','region'].includes(n.kind))return 'cluster';
+ if(n.kind==='sector')return 'planet'; // eleven sector worlds orbit one sun
+ if(n.kind==='industry')return 'system'; // each sector opens its own stellar system
+ if(n.kind==='stock')return 'planet'; // securities become shaded planetary bodies
+ return 'cluster';
+}
+function colorOf(n){
+ const realm=(n.id||'').split('/')[0];
+ if(n.kind==='galaxy'||n.kind==='gap')return REGIONS[n.id]||'#8aa9c8';
+ if(n.kind==='continent')return {'Europe':'#ba9aeb','Asia-Pacific':'#65d4d8','North America':'#65b3eb','Latin America':'#e3a574','Middle East & Africa':'#d6a4cb'}[n.name]||REGIONS[realm]||'#86bcd8';
+ if(n.kind==='country')return REGIONS[realm]||'#8ebde6';
+ if(n.kind==='sector'||n.kind==='stock'||n.kind==='industry')return SECTORS[n.kind==='sector'?n.name:n.sector]||REGIONS[realm]||'#a7cce8';
+ return REGIONS[realm]||COLORS[n.kind]||'#a3c8df';
+}
+function rgb(h){const s=h.replace('#','');return [parseInt(s.slice(0,2),16)/255,parseInt(s.slice(2,4),16)/255,parseInt(s.slice(4,6),16)/255]}
+function seeded(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return()=>{h+=0x6d2b79f5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+function company(id,name,sector){return {id:'preview-'+id,name,kind:'stock',ticker:id,sector,weight:null,returns:null,children:[]}}
+function previewSector(id,sector,sublists){return {id:'pv-'+id,name:sector,kind:'sector',children:Object.entries(sublists).map(([ind,co])=>({id:'pv-'+id+'-'+ind,name:ind,kind:'industry',children:co.map(x=>company(x[0],x[1],sector))}))}}
+function preview(){
+ const S=(id,name,k,children,subtitle='')=>({id,name,kind:k,children,subtitle,weight:null,returns:null});
+ const sample=(id,name,sector,industry,ticker,companyName)=>S(id,name,'country',[
+    S(id+'/holdings','ILLUSTRATIVE POSITION TIER','segment',[
+      previewSector(id+'-'+sector,sector,{[industry]:[[ticker,companyName]]})
+    ],'Demo positions, not official index membership')
+ ],'Example of the geographic and industry drill-down; preview names are illustrative, not a data feed');
+ const us=S('us','United States','galaxy',[
+  S('us/r3000','Russell 3000 · INDEX STRUCTURE EXAMPLE','market',[
+    S('us/r1000','Russell 1000','benchmark',[previewSector('us-tech','Information Technology',{'Semiconductors':[['NVDA','NVIDIA'],['AMD','Advanced Micro Devices']],'Software':[['MSFT','Microsoft']]})]),
+    S('us/r2000','Russell 2000','benchmark',[previewSector('us-small','Industrials',{'Illustrative companies':[['SMPL','Sample small-cap issuer']]})])
+  ],'Structural preview only: no licensed Russell constituent list')
+ ],'The U.S. is one of several world galaxies; Russell is its example index family');
+ const d=S('developed','Developed international','galaxy',[
+  S('developed/Europe','Europe','continent',[
+   sample('developed/Europe/United Kingdom','United Kingdom','Energy','Integrated energy','SHEL','Shell'),
+   sample('developed/Europe/Germany','Germany','Information Technology','Software','SAP','SAP SE'),
+   sample('developed/Europe/France','France','Consumer Discretionary','Luxury goods','MC','LVMH')]),
+  S('developed/Asia-Pacific','Asia-Pacific','continent',[
+   sample('developed/Asia-Pacific/Japan','Japan','Consumer Discretionary','Automobiles','7203','Toyota Motor'),
+   sample('developed/Asia-Pacific/Australia','Australia','Materials','Mining','BHP','BHP')]),
+  S('developed/North America','North America','continent',[
+   sample('developed/North America/Canada','Canada','Financials','Banks','RY','Royal Bank of Canada')])
+ ],'EAFE-style developed markets and Canada, grouped by geography; demo placements only');
+ const em=S('emerging','Emerging markets','galaxy',[
+  S('emerging/Asia-Pacific','Asia-Pacific','continent',[
+   sample('emerging/Asia-Pacific/India','India','Information Technology','IT services','INFY','Infosys'),
+   sample('emerging/Asia-Pacific/Taiwan','Taiwan','Information Technology','Semiconductors','2330','Taiwan Semiconductor'),
+   sample('emerging/Asia-Pacific/China','China','Consumer Discretionary','E-commerce','9988','Alibaba')]),
+  S('emerging/Latin America','Latin America','continent',[
+   sample('emerging/Latin America/Brazil','Brazil','Materials','Mining','VALE3','Vale')]),
+  S('emerging/Middle East & Africa','Middle East & Africa','continent',[
+   sample('emerging/Middle East & Africa/South Africa','South Africa','Financials','Banking','FSR','FirstRand')])
+ ],'MSCI emerging-markets mandate; country assignments can differ from FTSE Russell');
+ const frontier=S('frontier','Frontier & uncovered markets','gap',[],'An honest coverage boundary: no current verified frontier constituent feed; 0 represented securities');
+ return {schema:'orbital-v1',mode:'illustrative-preview',generated_at:null,sources:{},root:S('global','Global Equity Universe','universe',[us,d,em,frontier],'Demo of a WORLDWIDE market structure: geography → country → size proxy / index → sector → industry → companies. No current holdings implied.')};
+}
+let dataset=preview(), current=dataset.root, ancestors=[], selected=null, all=[], parent=new WeakMap(), live=false, mode='structure', orbit=true, paused=false, rotation=.075, pitch=-.18, distance=40, targetDistance=40, nodes=[], glScene=null, lastHover=null, renderer=null, sceneFx=null, atmosFx=null, fxQuality=(matchMedia('(prefers-reduced-motion: reduce)').matches?'balanced':'ultra'), fps=0, frame=0;
+function hydrate(){if(typeof sceneGeometryCache!=='undefined')sceneGeometryCache.clear();all=[];parent=new WeakMap();const visit=(node,p,depth)=>{if(!node||typeof node!=='object')return 0;node._depth=depth;node.children=Array.isArray(node.children)?node.children:[];if(p)parent.set(node,p);all.push(node);let count=node.kind==='stock'?1:0;for(const ch of node.children)count+=visit(ch,node,depth+1);node._count=count;return count};visit(dataset.root,null,0)}
+function verify(doc){if(!doc||doc.schema!=='orbital-v1'||!doc.root||!Array.isArray(doc.root.children))throw Error('Unsupported or incomplete ORBITAL JSON snapshot');const p=JSON.stringify(doc);if(p.length>25e6)throw Error('Snapshot too large for browser memory');return doc}
+function status(state,s){$('dataStatus').dataset.state=state;$('statusText').textContent=s}
+function loadSnapshot(data,persist=true,origin='auto'){verify(data);dataset=data;window.orbitalActiveOrigin=origin;live=data.mode==='holdings-proxy';hydrate();current=dataset.root;ancestors=[];selected=null;renderUI();buildScene();status(live?'live':'preview',live?(origin==='manual'?'MANUAL JSON':'GLOBAL ETF PROXY'):'PREVIEW');$('dateRead').textContent=live?(data.generated_at?'AS OF '+new Date(data.generated_at).toLocaleDateString():'LATEST SNAPSHOT'):'STRUCTURE PREVIEW';if(live && data.generated_at && (Date.now()-Date.parse(data.generated_at))>86400000*4){status('stale','STALE DATA')};$('sourceInfo').textContent=live?('Updated '+(data.generated_at||'unknown')+'. Sources: '+Object.entries(data.sources||{}).map(([k,v])=>k+' '+v.holdings+' holdings ('+v.holdings_asof+')').join(' · ')):('Illustrative structure only. No fabricated quotes or returns; sample ticker placements are not official constituents.');if(persist){try{localStorage.setItem('orbital-cache',JSON.stringify(data));localStorage.setItem('orbital-source-pref',origin==='manual'?'manual':'auto')}catch(e){}}syncDataLab()}
+let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),3300)}
+async function fetchSnapshot(manual=false){
+ if(!manual){try{if(localStorage.getItem('orbital-source-pref')==='manual')return}catch(e){}}
+ const prog=$('progress');prog.style.width='20%';
+ if(manual)toast('Checking published ORBITAL snapshot…');
+ const feeds=[
+  {name:'GitHub Raw',url:'https://raw.githubusercontent.com/denism2013/market-dex-data/main/data/orbital-market-universe.json'},
+  {name:'GitHub Pages',url:FEED},
+  {name:'CDN mirror',url:'https://cdn.jsdelivr.net/gh/denism2013/market-dex-data@main/data/orbital-market-universe.json'},
+ ];
+ let error='No published sources reachable';
+ for(let i=0;i<feeds.length;i++){
+  const feed=feeds[i];
+  try{
+   prog.style.width=(25+i*18)+'%';
+   const res=await fetch(feed.url+'?v='+Date.now(),{mode:'cors',cache:'no-store',signal:AbortSignal.timeout(i===0?10000:7000)});
+   if(!res.ok)throw Error('HTTP '+res.status);
+   const data=verify(await res.json());
+   if(data.mode!=='holdings-proxy')throw Error('Expected holdings-proxy payload');
+   if(!manual&&window.orbitalActiveOrigin==='manual')return;prog.style.width='80%';loadSnapshot(data,true,'auto');prog.style.width='100%';
+   if(manual)toast('Live ETF snapshot loaded via '+feed.name+' · '+Object.keys(data.sources||{}).length+' funds');
+   setTimeout(()=>prog.style.width='0',900);return;
+  }catch(e){error=feed.name+': '+(e?.message||e);console.info('ORBITAL feed attempt:',error)}
+ }
+ if(manual)toast('No live feed reachable. '+(live?'Previous holdings':'Illustrative preview')+' retained.');syncDataLab();
+ console.info('ORBITAL snapshots unavailable:',error);prog.style.width='0';
+}
+function focus(node){if(!node)return;selected=node;if(node.children?.length){fly(node)}else{renderUI();selectHighlight();toast('SECURITY // '+(node.ticker||node.name)+' · '+(node.industry||node.sector||'classified by ETF'));}}
+function fly(node){if(!node)return;if(!node.children?.length){selected=node;selectHighlight();toast('INDIVIDUAL SECURITY · '+(node.ticker||node.name));return}const overlay=$('warp');overlay.classList.add('active');atmosFx?.kickWarp();targetDistance=17;setTimeout(()=>{if(node!==current){ancestors.push(current);current=node}selected=null;rotation=.07;pitch=-.18;renderUI();buildScene(true);window.scrollTo(0,0)},275);setTimeout(()=>overlay.classList.remove('active'),650)}
+function goHome(){current=dataset.root;ancestors=[];selected=null;renderUI();buildScene();toast('RETURNED TO GLOBAL UNIVERSE')}
+function goBack(){if(!ancestors.length){goHome();return}current=ancestors.pop();selected=null;renderUI();buildScene()}
+function goTo(node){if(!node)return;const lineage=[];let t=node;while(t&&t!==dataset.root){lineage.unshift(t);t=parent.get(t)};current=parent.get(node)||dataset.root;ancestors=[];let p=current;while(p && p!==dataset.root){ancestors.unshift(parent.get(p));p=parent.get(p)};selected=node;renderUI();buildScene();if(node.kind==='stock')toast('LOCATED '+node.ticker+' · SELECT A SYSTEM TO VIEW');}
+function nodeSubtitle(n){if(n.subtitle)return n.subtitle;if(n.kind==='universe')return 'Global equities by market classification, geography, country and sector.';if(n.kind==='stock')return n.ticker+' · '+(n.industry||n.sector||'public equity');return ({galaxy:'Global equity-market realm',continent:'World geographic region',gap:'Unmapped market coverage boundary',market:'Country index family or proxy',region:'Market region',benchmark:'ETF holdings coverage',segment:'Relative holdings-weight tier (not issuer market cap)',country:'National market coverage',sector:'Source ETF sector',industry:'Yahoo / issuer industry classification'})[n.kind]||'Market constellation'}
+function children(){return current.children?.length?current.children:[current]}
+function branchWeight(nodes){const vals=nodes.map(x=>x.weight).filter(x=>typeof x==='number');return vals.length===nodes.length&&vals.length>0?vals:null}
+function numericReturns(n){const r=n?.returns;if(r && typeof r==='object')return r[mode==='return'?'1d':'1d'];return null}
+function renderUI(){const base=current;const childrenNow=children();$('navTitle').textContent=base.name;$('navSubtitle').textContent=nodeSubtitle(base);$('sceneTag').textContent='ORBITAL / '+cosmicForm(base).toUpperCase()+' / DEPTH '+String(base._depth||0).padStart(2,'0');$('sceneTitle').innerHTML=ESC(base.name).replace(/(Universe|Markets|3000|1000|2000)$/i,'<span>$1</span>');$('sceneSub').textContent=base.kind==='gap'?'COVERAGE GAP · NO CONSTITUENT DATA AVAILABLE':base.children.length?('NAVIGATE '+({'universe':'COSMIC SUPERCLUSTERS','galaxy':'COSMIC NEBULAE','continent':'COUNTRY GALAXIES','country':'MARKET CAP CLUSTERS','market':'MARKET CAP CLUSTERS','benchmark':'11 SECTOR PLANETS','segment':'11 SECTOR PLANETS','sector':'INDUSTRY STAR SYSTEMS','industry':'COMPANY PLANETS'}[base.kind]||'CELESTIAL OBJECTS')):'MARKET STRUCTURE ENDPOINT';$('infoTitle').textContent=selected?.name||base.name;$('infoSubtitle').textContent=nodeSubtitle(selected||base);$('metricSystems').textContent=fmt(base.children.length);$('metricSecurities').textContent=fmt(base._count);const qc=dataset.quality||{};const countryCount=qc.country_count??new Set(all.filter(n=>n.kind==='stock').map(n=>n.country).filter(Boolean)).size; $('atlasCountryCount').textContent=live?fmt(countryCount):'DEMO';$('atlasStocksCount').textContent=live?fmt(dataset.root._count):'—';$('atlasAtlasStatus').textContent=live?'ETF HOLDINGS · NOT ALL LISTED SECURITIES':'ILLUSTRATIVE NAVIGATION';$('metricWeight').textContent=weight((selected||base).worldWeight??(selected||base).weight);$('metricReturn').textContent=pcent(numericReturns(selected||base));$('metricReturn').style.color=(numericReturns(selected||base)<0?'#ff8698':'#70dec0');if(numericReturns(selected||base)==null)$('metricReturn').style.color='#95adc2';
+const trail=[...ancestors,base];$('crumbs').innerHTML=trail.map((b,i)=>'<button data-depth="'+i+'" title="'+ESC(b.name)+'">'+ESC(b._depth===0?'UNIVERSE':b.name)+'</button>'+(i<trail.length-1?'<span class="sep">›</span>':'')).join('');$('crumbs').querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{const depth=+btn.dataset.depth;if(depth===trail.length-1)return;current=trail[depth];ancestors=trail.slice(0,depth);selected=null;renderUI();buildScene()}));
+const sorted=[...childrenNow].sort((a,b)=>((b.weight??0)-(a.weight??0))||((b._count??0)-(a._count??0)));
+const html=sorted.slice(0,45).map((n,i)=>'<button class="navitem" data-idx="'+childrenNow.indexOf(n)+'"><i class="orbdot" style="background:'+colorOf(n)+';color:'+colorOf(n)+'"></i><span class="entry"><b>'+ESC(n.name)+'</b><small>'+ESC(n.ticker||cosmicForm(n).toUpperCase())+' · '+(typeof n.weight==='number'?weight(n.weight):fmt(n._count)+' names')+'</small></span><span class="chev">›</span></button>').join('');$('navList').innerHTML=html||'<span class="dim small">This is an individual security.</span>';$('navList').querySelectorAll('.navitem').forEach(b=>b.addEventListener('click',()=>focus(childrenNow[+b.dataset.idx])));
+const comparable=branchWeight(sorted);const total=comparable?sorted.reduce((s,n)=>s+n.weight,0):null;const max=comparable?Math.max(...comparable):Math.max(...sorted.map(x=>x._count||1));$('breakdown').innerHTML=sorted.slice(0,7).map((n,i)=>'<div class="barlabel"><span>'+ESC(n.name)+'</span><span>'+((typeof n.weight==='number'&&total!==null)?weight(n.weight):fmt(n._count)+' names')+'</span></div><div class="bar"><i style="width:'+Math.max(2,Math.min(100,((comparable?n.weight:(n._count||1))/Math.max(1,max))*100))+'%;background:'+colorOf(n)+'"></i></div>').join('')||'<div class="small dim">No further market subgroups.</div>';
+const source=base.source||null;
+$('analysisText').textContent=base.kind==='universe'?('Global country navigation across U.S., developed ex-U.S., and emerging-market ETF holdings. '+(dataset.quality?.country_count||'Several')+' markets represented in this snapshot; frontier is not covered. Fund weights are not additive worldwide.')
+ :base.kind==='galaxy'?'Market-classification realm. Explore geographic regions, national markets, country-relative allocation tiers, sectors and securities. This is not an authoritative complete list of all public companies.'
+ :base.kind==='continent'?'Geographic collection of markets within this ETF market classification. Sector weights from different source ETFs must not be summed.'
+ :base.kind==='country'?'Country ETF holdings, not official national-index membership. Its size-like tiers rank positions by relative holdings WEIGHT, not market capitalization. '+(base.subtitle||'')
+ :base.kind==='segment'?'Position ranks within one source ETF and country, not actual capitalizations. '+(base.subtitle||'')
+ :base.kind==='gap'?'No verified free holdings source currently covers frontier markets comprehensively. This space is uncharted rather than populated with invented securities.'
+ :base.kind==='sector'?'Sectors come from ETF issuer holdings; optional Yahoo industry names are incomplete and may not match official GICS subindustries.'
+ :base.kind==='stock'?'Individual equity endpoint. Valuation is only shown if verified, and individual returns are unavailable unless explicitly provided.'
+ :(source?'Holding weights use the '+source+' ETF denominator only. '+(base.subtitle||''):(base.subtitle||'Choose a constellation to enter this market.'));
+
+$('exploreBtn').disabled=!childrenNow.length;$('exploreBtn').textContent=(selected?.children?.length?'ENTER '+selected.name.slice(0,23):'ENTER SELECTED SYSTEM')+' →';$('coverageNote').textContent=live?'WORLD ATLAS · GLOBAL SIZES: ACWI ETF VALUE PROXY · '+(base.source||'multiple sources')+' · '+(dataset.generated_at?new Date(dataset.generated_at).toLocaleString():'undated')+'. Official index membership is not asserted.':'ILLUSTRATIVE PREVIEW · Demo company placements do not assert official index membership. Live data fetch is attempted on opening.';
+$('bottomCount').textContent=String(childrenNow.length).padStart(2,'0')+' VISIBLE SYSTEMS';$('systemCards').innerHTML=sorted.slice(0,40).map(n=>'<button class="systemcard" data-idx="'+childrenNow.indexOf(n)+'" style="--card-color:'+colorOf(n)+'"><div class="code">'+ESC(cosmicForm(n).toUpperCase())+' / '+ESC(n.ticker||n.source||'ORB')+'</div><strong>'+ESC(n.name)+'</strong><small>'+((typeof n.weight==='number')?weight(n.weight)+' of '+ESC(n.source||'fund'):fmt(n._count)+' securities')+'</small></button>').join('');$('systemCards').querySelectorAll('.systemcard').forEach(b=>b.addEventListener('click',()=>focus(childrenNow[+b.dataset.idx])));
+$('leftpanel').classList.remove('open');$('rightpanel').classList.remove('open');}
+function selectHighlight(){const n=selected||current;$('infoTitle').textContent=n.name;$('infoSubtitle').textContent=nodeSubtitle(n);$('metricWeight').textContent=weight(n.worldWeight??n.weight);$('metricReturn').textContent=pcent(numericReturns(n));$('exploreBtn').disabled=!selected?.children?.length;$('exploreBtn').textContent=selected?.children?.length?'ENTER SELECTED SYSTEM →':'SECURITY / ENDPOINT';document.querySelectorAll('.node-label').forEach(x=>x.classList.toggle('focused',x.dataset.id===n.id));}
+function geomNode(n,index,count,stats){const isPlanet=cosmicForm(n)==='planet'||cosmicForm(n)==='moon';const seed=seeded(n.id);const a=(Math.PI*2*index)/Math.max(count,1)+.5;let spread=count===3?15:count<=5?12:count<=11?13:count<=20?16:17;const ellipse=Math.max(.6,Math.min(1,(window.innerWidth/Math.max(300,window.innerHeight))*.58));let x=0,y=0,z=0;if(count===1){x=0;y=0}else if(count===2){x=(index-.5)*18;y=0}else if(count===3){x=(index-1)*11;y=(index===1?-2.6:1.4)}else{x=Math.cos(a)*spread*(.82+.12*seed());y=Math.sin(a)*spread*ellipse*(.84+.12*seed());z=(seed()-.5)*5}let frac=n.kind==='gap'?.08:((stats.worldWeighted&&typeof n.worldWeight==='number')?n.worldWeight:((stats.weighted&&typeof n.weight==='number')?n.weight:Math.max(1,n._count||1)));const rank=Math.sqrt(clamp(frac/Math.max(stats.reference,.001),.20,3.2));const base=count===1?8.2:count<=3?5.7:count<=6?4.5:count<=12?3.35:count<=20?2.7:2.0;const radius=isPlanet?clamp(1.9*rank,1.2,3.5):clamp(base*(.85+.25*rank),1.8,count<=3?8:5);return {...n,_x:x,_y:y,_z:z,_r:radius,_color:(mode==='return'&&typeof n.returns?.['1d']==='number'?(n.returns['1d']>=0?'#4ee3bc':'#ff7d92'):colorOf(n)),_planet:isPlanet,_form:cosmicForm(n)}}
+
+
+/** Procedural observatory-grade, dependency-free luminous-galaxy compositor.
+ * Rendered behind true 3D particle stars, using cached high-res canvases.
+ * Artwork is regenerated only when the market hierarchy changes. */
+class NebulaFX {
+ constructor(canvas){this.c=canvas;this.g=canvas.getContext('2d',{alpha:true});if(!this.g)throw Error('Nebula layer unavailable');this.cache=new Map();this.cacheBudget=innerWidth<760?20:28;this.last=0;this.q=innerWidth<760?'mobile':'desktop';this.nodes=[];this.generation=0;
+  this.backdrop=document.getElementById('nebulaBackdrop');
+  this.bgContext=this.backdrop?.getContext('2d',{alpha:true});
+  this.worker=this.startSpriteWorker();
+  this.resize();}
+ resize(){this.w=this.c.clientWidth||innerWidth;this.h=this.c.clientHeight||innerHeight;this.dpr=Math.min(window.devicePixelRatio||1,1.0);this.c.width=Math.round(this.w*this.dpr);this.c.height=Math.round(this.h*this.dpr);this.background=this.makeBackground();
+  if(this.bgContext){
+   const bw=this.w+34,bh=this.h+30;
+   this.backdrop.width=Math.round(bw*this.dpr);this.backdrop.height=Math.round(bh*this.dpr);
+   const b=this.bgContext;b.setTransform(this.dpr,0,0,this.dpr,0,0);b.clearRect(0,0,bw,bh);
+   b.drawImage(this.background,0,0,bw,bh);
+  }
+ }
+ makeBackground(){
+  // A deep, deterministic 6-layer nebula is synthesized once per resize.
+  // All clouds and dust lanes are cached; per-frame work is a single image draw.
+  const c=document.createElement('canvas');c.width=this.w<760?900:1440;c.height=this.w<760?1000:900;
+  const g=c.getContext('2d',{alpha:true}), W=c.width,H=c.height,r=seeded('orbital-deep-sky-v6');
+  const palettes=[
+   {x:.18,y:.44,c:[58,132,230],rx:.33,ry:.43,ang:-.37},
+   {x:.40,y:.22,c:[82,48,175],rx:.30,ry:.40,ang:.68},
+   {x:.71,y:.35,c:[172,64,157],rx:.34,ry:.37,ang:-.57},
+   {x:.80,y:.77,c:[26,141,197],rx:.37,ry:.30,ang:.18},
+   {x:.44,y:.80,c:[16,81,157],rx:.34,ry:.36,ang:.68},
+   {x:.59,y:.53,c:[86,72,178],rx:.49,ry:.19,ang:-.52},
+  ];
+  g.globalCompositeOperation='screen';
+  for(const p of palettes){
+   for(let k=0;k<15;k++){
+    const jitter=(r()-.5)*.34;
+    const cx=(p.x+(r()-.5)*p.rx*.95)*W,cy=(p.y+(r()-.5)*p.ry*.9)*H;
+    const rx=W*p.rx*(.24+.60*r()),ry=H*p.ry*(.25+.72*r());
+    const [R,G,B]=p.c;const a=(.012+.044*r())*(k<13?1.38:1);
+    g.save();g.translate(cx,cy);g.rotate(p.ang+jitter);g.scale(1,ry/rx);
+    const grad=g.createRadialGradient(0,0,0,0,0,rx);
+    grad.addColorStop(0,`rgba(${R},${G},${B},${a.toFixed(4)})`);
+    grad.addColorStop(.31,`rgba(${R},${G},${B},${(a*.66).toFixed(4)})`);
+    grad.addColorStop(.72,`rgba(${R},${G},${B},${(a*.19).toFixed(4)})`);
+    grad.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=grad;
+    g.fillRect(-rx,-rx,2*rx,2*rx);g.restore();
+   }
+  }
+  // A faint diagonal star-forming band: real star clusters amid cloud lanes.
+  for(let i=0;i<2600;i++){
+   const path=r()*1.4-.2,spread=(r()+r()+r()-1.5)*.11;
+   const xx=(path+spread)*W,yy=(.84-.61*path+(r()+r()-1)*.19)*H;
+   if(xx<0||xx>W||yy<0||yy>H)continue;
+   const bright=r(), rad=bright>.993?1.6:bright>.96?1.05:.52;
+   g.fillStyle=bright>.99?'rgba(220,241,255,.54)':`rgba(162,186,236,${(.035+r()*.21).toFixed(3)})`;
+   g.fillRect(xx,yy,rad,rad);
+  }
+  // Shadowed interstellar dust cuts across the emission clouds; no flat color washes.
+  g.globalCompositeOperation='source-over';
+  g.save();g.filter='blur(10px)';
+  for(let j=0;j<15;j++){
+   const x=(.08+j*.048)*W, off=(r()-.5)*H*.17;
+   g.beginPath();g.moveTo(x-W*.12,H*.89+off);
+   g.bezierCurveTo(x-W*.08,H*.68+off,x+W*.045,H*.56+off,x+W*.08,H*.27+off);
+   g.strokeStyle=`rgba(1,4,14,${(.05+.12*r()).toFixed(3)})`;
+   g.lineWidth=(11+r()*38)*(this.w<760?.6:1);g.stroke();
+  }g.restore();
+  // Wispy filaments emulate scattering through nebula gas, not repeating gradients.
+  g.save();g.globalCompositeOperation='screen';g.filter='blur(4px)';
+  for(let j=0;j<26;j++){
+   const x=r()*W,y=r()*H,len=80+r()*W*.27;
+   const cool=j%3===0;
+   const grad=g.createLinearGradient(x-len*.35,y-len*.25,x+len*.4,y+len*.16);
+   grad.addColorStop(0,'rgba(0,0,0,0)');
+   grad.addColorStop(.5,cool?'rgba(90,173,244,.055)':'rgba(177,116,247,.048)');
+   grad.addColorStop(1,'rgba(0,0,0,0)');
+   g.strokeStyle=grad;g.lineWidth=1+r()*4;
+   g.beginPath();g.moveTo(x-len*.5,y+len*.14);g.bezierCurveTo(x-len*.18,y-len*.19,x+len*.13,y+len*.27,x+len*.5,y-len*.12);g.stroke();
+  }g.restore();
+  // Background pinprick stars, separate from dynamic 3D WebGL particles.
+  for(let i=0;i<(this.w<760?1100:1900);i++){
+   const x=r()*W,y=r()*H,b=r(),sz=b>.995?1.6:b>.96?1:.48;
+   g.fillStyle=b>.99?'rgba(230,245,255,.84)':`rgba(153,194,247,${(.15+b*.52).toFixed(3)})`;
+   g.fillRect(x,y,sz,sz);
+  }
+  return c;
+ }
+  makeSprite(n,index){
+  const form=n._form||cosmicForm(n), crowd=this.nodes.length>12;
+  const S=crowd?384:(this.w<760?576:704),M=S/2;
+  const c=document.createElement('canvas');c.width=S;c.height=S;
+  const g=c.getContext('2d',{alpha:true});const random=seeded(n.id+'-orbital-celestial-v8');
+  const color=n._color||'#8bcde9',ch=rgb(color),tau=Math.PI*2;
+  const rgba=(a,w=0)=>'rgba('+Math.round((ch[0]*(1-w)+w)*255)+','+Math.round((ch[1]*(1-w)+w)*255)+','+Math.round((ch[2]*(1-w)+w)*255)+','+a+')';
+  const glow=(x,y,rr,alpha=0.4,white=0)=>{
+   const gg=g.createRadialGradient(x,y,0,x,y,rr);gg.addColorStop(0,rgba(alpha,white));gg.addColorStop(.27,rgba(alpha*.37,white*.4));gg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gg;g.fillRect(x-rr,y-rr,rr*2,rr*2)
+  };
+  const pin=(x,y,r,alpha=1)=>{g.fillStyle=rgba(alpha,.65);g.fillRect(x,y,r,r)};
+  g.globalCompositeOperation='screen';glow(M,M,M*.86,.11);
+  if(form==='void'){
+   g.save();g.translate(M,M);g.scale(1,.69);glow(0,0,M*.75,.2);
+   const grd=g.createRadialGradient(0,0,M*.28,0,0,M*.71);
+   grd.addColorStop(0,'rgba(0,0,0,.98)');grd.addColorStop(.48,'rgba(12,5,23,.9)');grd.addColorStop(.65,'rgba(203,130,205,.24)');grd.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=grd;g.beginPath();g.arc(0,0,M*.71,0,tau);g.fill();g.restore();return c;
+  }
+  if(form==='supercluster'){
+   // A cosmic web: elongated filaments linking bright galaxy concentrations.
+   // This artwork is generated ONCE per market node in a worker / sprite cache.
+   const hubs=[[-.48,-.19,.18],[.05,-.40,.14],[.45,-.14,.19],[-.30,.28,.16],[.23,.32,.19],[.02,.03,.23]];
+   g.save();g.translate(M,M);g.rotate((random()-.5)*.36);
+   const points=hubs.map(([x,y,r])=>({x:x*M*1.33,y:y*M*1.33,r:r*M}));
+   const edges=[[0,1],[1,2],[0,3],[3,4],[4,2],[1,5],[5,4],[3,5],[0,5]];
+   for(const [ia,ib] of edges){
+    const a=points[ia],b=points[ib];
+    let bend=(random()-.5)*M*.17;
+    const qx=(a.x+b.x)/2+bend,qy=(a.y+b.y)/2-bend*.45;
+    g.strokeStyle=rgba(.035,.18);g.lineWidth=M*.075;
+    g.beginPath();g.moveTo(a.x,a.y);g.quadraticCurveTo(qx,qy,b.x,b.y);g.stroke();
+    g.strokeStyle=rgba(.22,.58);g.lineWidth=M*.009;
+    g.beginPath();g.moveTo(a.x,a.y);g.quadraticCurveTo(qx,qy,b.x,b.y);g.stroke();
+    for(let t=0;t<145;t++){
+     const f=random(),off=(random()-.5)*M*.065;
+     const x=(1-f)*(1-f)*a.x+2*(1-f)*f*qx+f*f*b.x+off;
+     const y=(1-f)*(1-f)*a.y+2*(1-f)*f*qy+f*f*b.y+off*.47;
+     pin(x,y,random()>.96?1.55:.7,.07+random()*.40);
+    }
+   }
+   for(const hub of points){
+    glow(hub.x,hub.y,hub.r*2.2,.10,.19);
+    for(let j=0;j<270;j++){
+     const angle=random()*tau,r=Math.sqrt(random())*hub.r;
+     const x=hub.x+Math.cos(angle)*r,y=hub.y+Math.sin(angle)*r*.73;
+     if(j%21===0)glow(x,y,hub.r*.19,.12,.50);
+     else pin(x,y,random()>.985?1.8:.76,.16+random()*.72);
+    }
+    glow(hub.x,hub.y,hub.r*.56,.31,.66);
+    glow(hub.x,hub.y,hub.r*.12,.67,.93);
+   }
+   g.restore();
+  } else if(form==='galaxy'){
+   // Actual COUNTRY markets appear as individually seeded spiral galaxies. Arms have warm young
+   // star knots, blue emission regions, cool dust lanes and a golden central bulge.
+   g.save();g.translate(M,M);g.rotate((random()-.5)*.65);g.scale(1,.57+random()*.16);
+   const arms=2+Math.floor(random()*3),winding=5.1+random()*2.8;
+   // Expansive star-forming filaments make the galactic disk distinct from
+   // an open star cluster when its sprite is projected at mobile resolutions.
+   for(let arm=0;arm<arms;arm++){
+    for(let pass=0;pass<2;pass++){
+     g.beginPath();for(let j=0;j<120;j++){
+      const rr=.10+j/119*.79,a=arm*tau/arms+winding*rr+(pass?.04:-.035),rad=M*(.075+.82*rr);
+      j?g.lineTo(Math.cos(a)*rad,Math.sin(a)*rad):g.moveTo(Math.cos(a)*rad,Math.sin(a)*rad)
+     }
+     g.strokeStyle=pass?'rgba(236,242,255,.16)':rgba(.19,.40);
+     g.lineWidth=pass?M*.009:M*.041;
+     g.stroke();
+    }
+   }
+   for(let i=0;i<(crowd?1000:2200);i++){
+
+    const rr=Math.sqrt(random()),arm=i%arms,a=arm*tau/arms+winding*rr+(random()-.5)*(.15+.53*rr);
+    const rad=M*(.075+.82*rr),x=Math.cos(a)*rad+(random()-.5)*M*.065,y=Math.sin(a)*rad+(random()-.5)*M*.075;
+    if(i%19===0)glow(x,y,2+random()*M*.036,.05+random()*.07);
+    else pin(x,y,random()>.97?1.7:.65,.25+random()*.56);
+   }
+   // Star-forming blue-white regions and absorptive spiral dust cuts.
+   for(let arm=0;arm<arms;arm++){
+    g.beginPath();for(let j=0;j<82;j++){
+      const rr=.16+.74*j/81, a=arm*tau/arms+winding*rr+.14, rad=M*(.075+.82*rr);
+      j?g.lineTo(Math.cos(a)*rad,Math.sin(a)*rad):g.moveTo(Math.cos(a)*rad,Math.sin(a)*rad)
+    }
+    g.strokeStyle='rgba(1,3,14,.16)';g.lineWidth=M*.037;g.stroke();
+   }
+   glow(0,0,M*.44,.23,.30);glow(0,0,M*.18,.58,.70);glow(0,0,M*.066,.92,.98);g.fillStyle='rgba(255,220,165,.29)';g.beginPath();g.arc(0,0,M*.031,0,tau);g.fill();
+   g.restore();
+  } else if(form==='nebula'){
+   // Diffuse star nursery: an irregular cloud, never a miniature spiral galaxy.
+   g.save();g.translate(M,M);g.rotate((random()-.5)*1.1);
+   for(let i=0;i<(crowd?84:166);i++){
+    const a=random()*tau,rr=Math.sqrt(random())*M*.64;
+    const x=Math.cos(a)*rr,y=Math.sin(a)*rr*.63;
+    glow(x,y,M*(.08+random()*.17),.014+random()*.06);
+   }
+   for(let j=0;j<22;j++){
+    const xx=(random()-.5)*M*1.45,yy=(random()-.5)*M*.94;
+    g.beginPath();g.moveTo(xx-M*.22,yy-M*.08);g.bezierCurveTo(xx-M*.1,yy+M*.18,xx+M*.05,yy-M*.19,xx+M*.24,yy+M*.09);
+    g.lineWidth=2+random()*8;g.strokeStyle=j%3===0?'rgba(3,5,18,.14)':rgba(.055,.1);g.stroke();
+   }
+   for(let i=0;i<(crowd?360:850);i++){
+    const a=random()*tau,rr=Math.sqrt(random())*M*.72,x=Math.cos(a)*rr,y=Math.sin(a)*rr*.62;
+    pin(x,y,random()>.985?1.45:.6,.15+random()*.65)
+   }
+   g.restore();
+  } else if(form==='cluster'){
+   // Globular / open cluster. Bright stellar scatter with a dense inner region.
+   for(let i=0;i<(crowd?600:1650);i++){
+    const a=random()*tau,rr=Math.pow(random(),2.1)*M*.72,x=M+Math.cos(a)*rr,y=M+Math.sin(a)*rr*.80;
+    if(random()>.988)glow(x,y,M*.025,.26,.65);else pin(x,y,random()>.97?1.65:.7,.16+random()*.76)
+   }
+   glow(M,M,M*.34,.26,.42);glow(M,M,M*.14,.34,.72);
+  } else if(form==='system'||form==='star'){
+   // Stellar system: central sun, elliptical planetary tracks and discrete worlds.
+   const rings=form==='star'?4:3;
+   g.save();g.translate(M,M);g.rotate(-.26);
+   for(let i=0;i<rings;i++){
+    const rad=M*(.32+i*.145);g.beginPath();g.ellipse(0,0,rad,rad*.58,0,0,tau);
+    g.strokeStyle=rgba(i===0?.23:.12,.34);g.lineWidth=.9;g.stroke();
+    const a=1.0+i*2.38+(random()-.5)*.5;
+    const px=Math.cos(a)*rad,py=Math.sin(a)*rad*.58;
+    glow(px,py,M*(.032+random()*.018),.28,.4);
+    pin(px,py,2.2,.89)
+   }
+   g.restore();
+   glow(M,M,M*.41,.21,.38);glow(M,M,M*.17,.6,.81);glow(M,M,M*.07,.80,1);
+   // Tiny axial lens flare, not a gigantic cosmic cloud.
+   g.fillStyle=rgba(.16,.56);g.fillRect(M-M*.31,M-.6,M*.62,1.2);
+  } else {
+   // Industry planets and company moons are rendered as proper shaded spheres
+   // by DOM. Retain a barely visible reflected light halo behind them.
+   glow(M,M,M*.43,.10,.22);
+  }
+  return c;
+ }
+
+ startSpriteWorker(){
+  if(typeof Worker==='undefined'||typeof OffscreenCanvas==='undefined'||typeof createImageBitmap==='undefined')return null;
+  try{
+   const maker=NebulaFX.prototype.makeSprite.toString()
+     .replace(/^makeSprite\s*\(/,'function renderSprite(')
+     .replaceAll("document.createElement('canvas')","new OffscreenCanvas(1,1)");
+   const workerCode=[
+    'const clamp='+clamp.toString()+';',
+    'const seeded='+seeded.toString()+';',
+    'const rgb='+rgb.toString()+';',
+    'const cosmicForm='+cosmicForm.toString()+';',
+    maker,
+    'self.onmessage=async function(e){const d=e.data;try{for(const item of d.items){const canvas=renderSprite.call({nodes:{length:d.crowd},w:d.width},item.n);const bitmap=canvas.transferToImageBitmap();self.postMessage({key:item.key,bitmap,generation:d.generation},[bitmap]);}}catch(err){self.postMessage({error:String(err),generation:d.generation});}};'
+   ].join('\n');
+   const url=URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'}));
+   const w=new Worker(url);URL.revokeObjectURL(url);
+   w.onmessage=e=>{
+    const {key,bitmap,error,generation}=e.data;
+    if(error){console.warn('Offscreen galaxy worker unavailable:',error);this.disableSpriteWorker();return}
+    if(generation!==this.generation){bitmap?.close?.();return}
+    this.storeSprite(key,bitmap);
+   };
+   w.onerror=e=>{console.warn('Galaxy worker disabled, using original rendering:',e.message);this.disableSpriteWorker()};
+   return w;
+  }catch(err){console.warn('Offscreen rendering not supported:',err.message);return null}
+ }
+ disableSpriteWorker(){
+  this.worker?.terminate();this.worker=null;
+  // Continue with the exact original sprite generator on the main thread.
+  this.rebuild(this.nodes);
+ }
+ storeSprite(key,sprite){
+  const previous=this.cache.get(key);if(previous&&previous!==sprite)previous.close?.();
+  this.cache.delete(key);this.cache.set(key,sprite);
+  while(this.cache.size>this.cacheBudget){const eldest=this.cache.keys().next().value;
+   this.cache.get(eldest)?.close?.();this.cache.delete(eldest)}
+ }
+ spriteKey(n){return n.id+'|'+n.kind+'|'+(n._form||cosmicForm(n))+'|'+n._color+'|'+(this.nodes.length>12?'compact':'full')+'|'+(this.w<760?'mobile':'desktop')}
+ rebuild(ns){
+  this.nodes=ns;const generation=++this.generation;
+  const limit=ns.length>22?10:ns.length>12?16:ns.length;
+  const pending=[];
+  for(const n of ns.slice(0,limit)){
+   if(n._planet)continue;
+   const key=this.spriteKey(n);
+   if(this.cache.has(key)){
+    const old=this.cache.get(key);this.cache.delete(key);this.cache.set(key,old);
+   } else pending.push({n,key});
+  }
+  if(!pending.length)return;
+  if(this.worker){
+   try{
+    this.worker.postMessage({generation,crowd:ns.length,width:this.w,
+      items:pending.map(({n,key})=>({key,n:{id:n.id,kind:n.kind,_color:n._color,_form:n._form}}))});
+    return;
+   }catch(err){console.warn('Sprite worker transfer disabled:',err.message);this.worker.terminate();this.worker=null}
+  }
+  // Original rendering fallback, deferred between animation frames.
+  let i=0;
+  const next=()=>{
+   if(generation!==this.generation||!this.c.isConnected)return;
+   if(i<pending.length){const {n,key}=pending[i++];this.storeSprite(key,this.makeSprite(n));}
+   if(i<pending.length)setTimeout(next,35);
+  };
+  setTimeout(next,60);
+ }
+  draw(t){const g=this.g;if(!g)return;g.setTransform(this.dpr,0,0,this.dpr,0,0);g.clearRect(0,0,this.w,this.h);
+  // Gentle parallax in the surrounding cosmic backdrop.
+  const x=Math.sin(t*.025)*11,y=Math.cos(t*.02)*8;
+  if(this.bgContext){/* compositor-driven parallax: no main-thread style updates */}
+  else{g.globalAlpha=.70;g.drawImage(this.background,x-17,y-15,this.w+34,this.h+30);g.globalAlpha=1;}
+  // Spacetime lines map visible constellations and make three adjacent markets read as a system.
+  const pts=this.nodes.map(n=>({n,p:point(n)})).filter(o=>o.p.depth<115);
+  if(pts.length>1&&pts.length<13){g.save();g.strokeStyle='rgba(99,173,230,.15)';g.lineWidth=.7;g.setLineDash([2,8]);g.beginPath();for(let i=0;i<pts.length;i++){let a=pts[i].p,b=pts[(i+1)%pts.length].p;if(i===pts.length-1&&pts.length!==3)break;g.moveTo(a.x,a.y);g.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-22,b.x,b.y)}g.stroke();g.restore();}
+  // Distinct celestial scene: the 11 GICS sectors are PLANETS orbiting one
+  // star. No galaxy-within-galaxy repetition and no per-frame particle rebuild.
+  if(this.nodes.length>1&&this.nodes.every(n=>n.kind==='sector')){
+   const cx=this.w*.5,cy=this.h*.51,scale=Math.min(this.w*.45,this.h*.44);
+   g.save();g.globalCompositeOperation='screen';
+   g.strokeStyle='rgba(142,190,251,.17)';g.lineWidth=.8;
+   for(let k=0;k<4;k++){
+    g.beginPath();g.ellipse(cx,cy,scale*(.52+k*.25),scale*(.28+k*.13),-.14,0,Math.PI*2);g.stroke();
+   }
+   const sunSize=Math.max(74,Math.min(145,this.h*.16));
+   if(!this.sectorSun){
+    const c=document.createElement('canvas');c.width=c.height=256;
+    const sg=c.getContext('2d'),r=sg.createRadialGradient(128,128,0,128,128,128);
+    r.addColorStop(0,'rgba(255,255,243,1)');r.addColorStop(.09,'rgba(255,228,153,.87)');
+    r.addColorStop(.24,'rgba(250,171,93,.32)');r.addColorStop(.58,'rgba(244,122,83,.065)');r.addColorStop(1,'rgba(0,0,0,0)');
+    sg.fillStyle=r;sg.fillRect(0,0,256,256);this.sectorSun=c;
+   }
+   g.drawImage(this.sectorSun,cx-sunSize*1.7,cy-sunSize*1.7,sunSize*3.4,sunSize*3.4);
+   g.fillStyle='rgba(255,233,180,.35)';g.beginPath();g.arc(cx,cy,7,0,Math.PI*2);g.fill();
+   g.fillStyle='#fff8e3';g.beginPath();g.arc(cx,cy,2.6,0,Math.PI*2);g.fill();
+   g.restore();
+  }
+  // Cached galaxy compositing: negligible work per frame regardless of particle count.
+  for(const {n,p} of pts){const sprite=this.cache.get(this.spriteKey(n));if(!sprite)continue;const focal=this.w<760?1.35:2.25;const rScreen=clamp(n._r*this.h*focal/(2*p.depth),11,this.w*.27);const diameter=clamp(rScreen*(n.kind==='region'?4.2:this.w<760?4.25:3.35),this.w<760?(n.kind==='gap'?106:138):n.kind==='region'?168:100,this.w<760?430:680);
+   if(p.x<-diameter||p.x>this.w+diameter||p.y<-diameter||p.y>this.h+diameter)continue;
+   g.save();g.translate(p.x,p.y);g.rotate(.04*Math.sin(t*.18+n._r)+t*.014*(n.kind==='galaxy'?1:-1));g.globalAlpha=clamp((155-p.depth)/103,.32,.72);g.globalCompositeOperation='screen';g.drawImage(sprite,-diameter/2,-diameter/2,diameter,diameter);g.restore();
+   // A rotating observation orbit, with a small luminous tracking satellite.
+   if(!n._planet&&pts.length<15){g.save();g.translate(p.x,p.y);g.rotate(.3);g.strokeStyle=n._color+'5a';g.lineWidth=.85;g.beginPath();g.ellipse(0,0,diameter*.39,diameter*.20,0,0,Math.PI*2);g.stroke();const aa=t*.24+n._r,px=Math.cos(aa)*diameter*.39,py=Math.sin(aa)*diameter*.20;if(!this.satelliteGlow){const c=document.createElement('canvas');c.width=c.height=48;const sg=c.getContext('2d');const b=sg.createRadialGradient(24,24,0,24,24,24);b.addColorStop(0,'rgba(245,255,255,1)');b.addColorStop(.09,'rgba(205,240,255,.88)');b.addColorStop(.28,'rgba(126,196,255,.22)');b.addColorStop(1,'rgba(0,0,0,0)');sg.fillStyle=b;sg.fillRect(0,0,48,48);this.satelliteGlow=c;}g.drawImage(this.satelliteGlow,px-12,py-12,24,24);g.restore();}
+   if(selected?.id===n.id){g.save();g.strokeStyle='rgba(224,247,255,.65)';g.lineWidth=1.1;g.setLineDash([7,8]);g.beginPath();g.arc(p.x,p.y,diameter*.48+t%3,0,Math.PI*2);g.stroke();g.restore();}
+  }
+ }
+}
+
+
+class CinematicFX{
+ constructor(canvas){
+  this.c=canvas;this.g=canvas.getContext('2d',{alpha:true});if(!this.g)throw Error('Cinematic overlay unavailable');
+  this.rng=seeded('orbital-stellar-light-v6');this.last=0;this.jumpAt=-99;
+  this.motes=Array.from({length:innerWidth<760?20:46},()=>({x:this.rng(),y:this.rng(),phase:this.rng()*7,r:.32+this.rng()*1.25,speed:.14+this.rng()*.6}));
+  // Three depth-separated layers. Stars move at distinct speeds as the camera orbits.
+  this.deepStars=Array.from({length:innerWidth<760?150:480},(_,i)=>({
+   x:this.rng(),y:this.rng(),z:.15+this.rng()*.85,phase:this.rng()*6.283,
+   size:this.rng()>.985?2.2:.4+this.rng()*1.05,
+   tint:this.rng()>.72?'176,209,255':'213,235,255',rare:i%31===0
+  }));
+  this.sprite=this.makeGlare();this.haloSprites=new Map();this.resize();
+ }
+ makeGlare(){const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d'),m=48;
+  const rad=g.createRadialGradient(m,m,0,m,m,m);
+  rad.addColorStop(0,'rgba(255,255,255,.98)');rad.addColorStop(.035,'rgba(226,244,255,.87)');
+  rad.addColorStop(.11,'rgba(145,212,255,.35)');rad.addColorStop(.35,'rgba(92,166,253,.075)');rad.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=rad;g.fillRect(0,0,96,96);return c;
+ }
+ haloSprite(color){
+  let sprite=this.haloSprites.get(color);if(sprite)return sprite;
+  const c=document.createElement('canvas');c.width=c.height=192;
+  const g=c.getContext('2d',{alpha:true}),p=96;
+  const gradient=g.createRadialGradient(p,p,8,p,p,p);
+  gradient.addColorStop(0,'rgba(230,250,255,.035)');
+  gradient.addColorStop(.20,color+'22');gradient.addColorStop(.52,color+'0c');
+  gradient.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gradient;g.fillRect(0,0,192,192);sprite=c;
+  if(this.haloSprites.size>24)this.haloSprites.delete(this.haloSprites.keys().next().value);
+  this.haloSprites.set(color,sprite);return sprite;
+ }
+ kickWarp(){this.jumpAt=performance.now()*.001}
+ resize(){
+  this.w=this.c.clientWidth||innerWidth;this.h=this.c.clientHeight||innerHeight;
+  this.dpr=Math.min(devicePixelRatio||1,1.0);
+  this.c.width=Math.max(1,Math.floor(this.w*this.dpr));this.c.height=Math.max(1,Math.floor(this.h*this.dpr));
+ }
+ draw(t){
+  const g=this.g;if(!g||fxQuality==='off')return;
+  const w=this.w,h=this.h,ultra=fxQuality==='ultra';
+  g.setTransform(this.dpr,0,0,this.dpr,0,0);g.clearRect(0,0,w,h);
+  g.globalCompositeOperation='screen';
+  const driftX=Math.sin(rotation)*12,driftY=Math.sin(pitch)*13;
+  const jump=clamp(1-(t-this.jumpAt)/.78,0,1);
+  // Volumetric perspective: very distant stars barely move, near dust drifts faster.
+  for(let i=0;i<this.deepStars.length;i+=(ultra?1:2)){
+   const s=this.deepStars[i],d=1-s.z;
+   let x=((s.x+(driftX*(.22+d*.85)/w)+t*(.000002+d*.000008))%1+1)%1*w;
+   let y=((s.y+(driftY*(.18+d*.8)/h)+Math.sin(t*.07+s.phase)*.0007)%1+1)%1*h;
+   const wink=.57+.43*Math.sin(t*(.66+d*.65)+s.phase);
+   const size=s.size*(.7+d*.7),alpha=(.12+.24*d)*(.6+.4*wink);
+   if(s.rare){g.drawImage(this.sprite,x-9*size,y-9*size,18*size,18*size)}
+   else{g.fillStyle=`rgba(${s.tint},${alpha.toFixed(3)})`;g.fillRect(x,y,size,size)}
+  }
+  // Interstellar particles occasionally streak across the foreground with subtle motion blur.
+  for(const m of this.motes){
+   const x=((m.x+t*m.speed*.00032+Math.sin(rotation)*.018)%1)*w;
+   const y=(m.y+Math.sin(t*.12+m.phase)*.007)*h;
+   const a=.09+.16*(1+Math.sin(t*.9+m.phase))/2;
+   g.fillStyle=`rgba(165,216,255,${a.toFixed(3)})`;
+   g.beginPath();g.arc(x,y,m.r,0,Math.PI*2);g.fill();
+  }
+  // Accretion rings and light scattering are tied to real visible market nodes.
+  const limit=ultra?14:6;
+  for(const n of nodes.slice(0,limit)){
+   if(n.kind==='gap')continue;
+   const p=point(n);if(p.depth>118||p.x<-140||p.x>w+140||p.y<-140||p.y>h+140)continue;
+   const r=clamp(n._r*h*(w<760?1.35:2.25)/(2*p.depth),12,w*.20);
+   const color=n._color;
+   g.save();g.translate(p.x,p.y);
+   // Dynamic multi-stage halo; no opaque disk hiding the star geometry.
+   const hr=r*(n._planet?2.4:3.1);
+   g.globalAlpha=ultra?.85:.65;
+   g.drawImage(this.haloSprite(color),-hr,-hr,hr*2,hr*2);
+   // Dust arcs slowly precess through galactic arms.
+   if(!n._planet){
+    const spin=t*(n.kind==='galaxy'?.042:.027)+(n._r%3);
+    g.rotate(spin);g.strokeStyle=color+'38';g.lineWidth=ultra?1.15:.75;
+    g.beginPath();g.ellipse(0,0,r*2.2,r*.94,-.34,.2,2.1);g.stroke();
+    if(ultra){g.strokeStyle='rgba(200,230,255,.20)';g.beginPath();g.ellipse(0,0,r*2.7,r*1.19,.38,2.5,4.9);g.stroke()}
+    const a=t*.18+n._r,ex=Math.cos(a)*r*2.2,ey=Math.sin(a)*r*.94;
+    g.drawImage(this.sprite,ex-11,ey-11,22,22);
+   }else if(selected?.id===n.id){
+    g.strokeStyle='rgba(214,245,255,.36)';g.lineWidth=.8;g.setLineDash([5,8]);
+    g.beginPath();g.ellipse(0,0,r*2.5,r*1.5,-.28,0,6.283);g.stroke();g.setLineDash([]);
+   }
+   g.restore();
+  }
+  // True flight-through visual: perspective-radiating streaks with an easing decay.
+  if(jump>.012){
+   const cx=w*.5,cy=h*.49,pow=jump*jump;const trails=ultra?90:44;
+   g.save();g.globalCompositeOperation='screen';
+   for(let i=0;i<trails;i++){
+    const a=(i*.61803398875%1)*6.283,r=(.14+(i*.381966%1)*.82)*Math.hypot(w,h)*.50;
+    const xx=cx+Math.cos(a)*r,yy=cy+Math.sin(a)*r*.68;
+    const l=(22+130*((i*.277)%1))*pow;
+    const grad=g.createLinearGradient(xx-Math.cos(a)*l,yy-Math.sin(a)*l*.68,xx,yy);
+    grad.addColorStop(0,'rgba(90,165,248,0)');grad.addColorStop(1,`rgba(215,239,255,${(.22+.28*pow).toFixed(3)})`);
+    g.strokeStyle=grad;g.lineWidth=(.65+((i*7)%9)/10)*Math.max(.25,pow);
+    g.beginPath();g.moveTo(xx-Math.cos(a)*l,yy-Math.sin(a)*l*.68);g.lineTo(xx,yy);g.stroke();
+   }g.restore();
+  }
+  // Two carefully timed meteor tracks: rare enough to retain calm and legibility.
+  if(ultra&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   for(let k=0;k<2;k++){
+    const cycle=(t*.039+k*.54)%1,life=Math.sin(Math.PI*clamp((cycle-.20)/.22,0,1));
+    if(life<.07||cycle>.42)continue;
+    const x=w*(1.02-cycle*1.32),y=h*(.16+k*.6),len=70+120*life;
+    const grad=g.createLinearGradient(x+len,y-len*.31,x,y);
+    grad.addColorStop(0,'rgba(132,189,255,0)');grad.addColorStop(1,`rgba(216,242,255,${(life*.33).toFixed(3)})`);
+    g.strokeStyle=grad;g.lineWidth=1.25;g.beginPath();g.moveTo(x+len,y-len*.31);g.lineTo(x,y);g.stroke();
+   }
+  }
+  g.globalCompositeOperation='source-over';
+ }
+}
+
+class WebGLSpace{
+ constructor(c){this.c=c;this.gl=c.getContext('webgl',{alpha:true,antialias:false,preserveDrawingBuffer:false,depth:false,powerPreference:'high-performance'});if(!this.gl)throw Error('WebGL unavailable');const gl=this.gl;const vs=`attribute vec3 position;attribute vec3 center;attribute vec3 tint;attribute float size;attribute float pulse;attribute float drift;uniform float t;uniform float yaw;uniform float tilt;uniform float distance;uniform float ratio;uniform float focal;uniform float dpr;varying vec3 c;varying float opacity;varying float zfade;void main(){vec3 rel=position-center;float theta=t*drift;float s=sin(theta);float co=cos(theta);rel.xy=vec2(rel.x*co-rel.y*s,rel.x*s+rel.y*co);vec3 p=center+rel;float cy=cos(yaw),sy=sin(yaw);p=vec3(p.x*cy+p.z*sy,p.y,-p.x*sy+p.z*cy);float cp=cos(tilt),sp=sin(tilt);p=vec3(p.x,p.y*cp-p.z*sp,p.y*sp+p.z*cp);float depth=max(4.,distance-p.z);float zoom=focal/depth;gl_Position=vec4(p.x*zoom/ratio,p.y*zoom,0.,1.);gl_PointSize=clamp(size*dpr*1.65*pow(distance/depth,.7),1.,46.);c=tint;opacity=clamp(.72+.20*sin(t*1.17+pulse),.35,.98);zfade=clamp(1.45-depth/130.,.23,1.);}`;
+ const fs=`precision mediump float;varying vec3 c;varying float opacity;varying float zfade;
+ uniform sampler2D starLut;
+ void main(){vec4 light=texture2D(starLut,gl_PointCoord);if(light.r<.004)discard;
+ vec3 color=mix(c,vec3(1.0,.98,.91),light.g*.81);
+ gl_FragColor=vec4(color,light.r*opacity*zfade);
+ }`;
+ function compile(type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh}const prog=gl.createProgram();gl.attachShader(prog,compile(gl.VERTEX_SHADER,vs));gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(prog));this.p=prog;this.loc={};for(let k of ['position','center','tint','size','pulse','drift'])this.loc[k]=gl.getAttribLocation(prog,k);for(let k of ['t','yaw','tilt','distance','ratio','focal','dpr'])this.loc[k]=gl.getUniformLocation(prog,k);
+  // Bake the EXISTING multi-Gaussian bloom and diffraction pattern into a
+  // texture. This moves 12+ transcendental functions/fragment into one GPU
+  // texture read, keeping their same appearance and every star particle.
+  const N=64, pixels=new Uint8Array(N*N*4);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const px=(x+.5)/N*2-1,py=(y+.5)/N*2-1,r=px*px+py*py;
+    const core=Math.exp(-r*32),cloud=Math.exp(-r*7.5),bloom=Math.exp(-r*2.25);
+    const sx=Math.exp(-Math.abs(px)*48)*Math.exp(-Math.abs(py)*2.8);
+    const sy=Math.exp(-Math.abs(py)*48)*Math.exp(-Math.abs(px)*2.8);
+    const diagonal=Math.exp(-Math.abs(px-py)*35)*Math.exp(-r*5.5);
+    const light=r<=1?Math.min(1,core*.72+cloud*.22+bloom*.09+(sx+sy)*.095+diagonal*.03):0;
+    const k=(y*N+x)*4;pixels[k]=Math.round(light*255);pixels[k+1]=Math.round(core*255);
+    pixels[k+2]=255;pixels[k+3]=255;
+  }
+  this.starLut=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.starLut);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.useProgram(this.p);gl.uniform1i(gl.getUniformLocation(this.p,'starLut'),0);
+  this.renderScale=innerWidth<760?1.05:1.12;this.lastScaleChange=0;
+this.buffer=gl.createBuffer();gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);this.count=0;this.resize();}
+ resize(){let w=this.c.clientWidth||window.innerWidth,h=this.c.clientHeight||window.innerHeight;this.dpr=Math.min(window.devicePixelRatio||1,this.renderScale||1.1);this.c.width=Math.round(w*this.dpr);this.c.height=Math.round(h*this.dpr);this.gl.viewport(0,0,this.c.width,this.c.height);this.w=w;this.h=h;}
+
+ setRenderScale(scale){
+   const next=clamp(scale,.78,1.45);
+   if(Math.abs(next-this.renderScale)<.09)return;
+   this.renderScale=next;this.lastScaleChange=performance.now();this.resize();
+ }
+ setGeometry(data,count){const gl=this.gl;this.count=count;gl.useProgram(this.p);gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);for(let i=0;i<6;i++){const k=['position','center','tint','size','pulse','drift'][i],l=this.loc[k];gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,i<3?3:1,gl.FLOAT,false,48,[0,12,24,36,40,44][i])}}
+ draw(t,yaw,tilt,distance){const gl=this.gl;gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(this.p);gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.uniform1f(this.loc.t,t);gl.uniform1f(this.loc.yaw,yaw);gl.uniform1f(this.loc.tilt,tilt);gl.uniform1f(this.loc.distance,distance);gl.uniform1f(this.loc.ratio,this.w/this.h);gl.uniform1f(this.loc.focal,this.w<760?1.35:2.25);gl.uniform1f(this.loc.dpr,this.dpr);gl.drawArrays(gl.POINTS,0,this.count)}
+}
+class CanvasSpace{
+ constructor(c){this.c=c;this.ctx=c.getContext('2d',{alpha:true});if(!this.ctx)throw Error('Canvas unavailable');this.cache=[];this.count=0;this.resize();for(const hex of ['#8fcaff','#dcb8ff','#ffd39a','#6deac8','#c9e9ff','#ff8f97']){const tex=document.createElement('canvas');tex.width=64;tex.height=64;const g=tex.getContext('2d');const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,hex);gr.addColorStop(.09,hex+'e8');gr.addColorStop(.28,hex+'70');gr.addColorStop(1,'#00000000');g.fillStyle=gr;g.fillRect(0,0,64,64);this.cache.push(tex)}}
+ resize(){this.w=this.c.clientWidth||innerWidth;this.h=this.c.clientHeight||innerHeight;this.dpr=Math.min(devicePixelRatio||1,1.0);this.c.width=Math.round(this.w*this.dpr);this.c.height=Math.round(this.h*this.dpr)}
+ setGeometry(data,count){this.data=data;this.count=count;this.spriteIndices=new Uint8Array(count);for(let i=0;i<count;i++){
+ const a=i*12,rr=data[a+6],gg=data[a+7],bb=data[a+8];let idx=4;
+ if(rr>gg*1.12&&rr>bb*.9)idx=2;
+ else if(bb>rr*1.25)idx=1;
+ else if(gg>rr*1.2)idx=3;
+ else if(rr>gg*1.1&&bb>gg*.8)idx=5;
+ else idx=0;
+ this.spriteIndices[i]=idx;
+ }}
+ draw(t,yaw,tilt,distance){const g=this.ctx;if(!this.data)return;g.clearRect(0,0,this.c.width,this.c.height);g.save();g.scale(this.dpr,this.dpr);g.globalCompositeOperation='lighter';const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(tilt),sp=Math.sin(tilt);const d=this.data;const stride=window.innerWidth<750?3:2;for(let i=0;i<this.count;i+=stride){const a=i*12;let x=d[a]-d[a+3],y=d[a+1]-d[a+4],z=d[a+2]-d[a+5];const theta=t*d[a+11],s=Math.sin(theta),c=Math.cos(theta);const xx=x*c-y*s;const yy=x*s+y*c;x=xx+d[a+3];y=yy+d[a+4];z+=d[a+5];let xx2=x*cy+z*sy,zz=-x*sy+z*cy,yy2=y*cp-zz*sp,depth=distance-(y*sp+zz*cp);if(depth<4||depth>260)continue;const mul=(this.w<760?1.35:2.25)*this.h/(2*depth);const px=this.w*.5+xx2*mul,py=this.h*.5-yy2*mul;if(px<-35||px>this.w+35||py<-35||py>this.h+35)continue;const idx=this.spriteIndices[i];let size=clamp(d[a+9]*Math.pow(distance/depth,.7)*2.25,1.1,25);g.globalAlpha=clamp(.17+.12*Math.sin(t*1.3+d[a+10]),.10,.30);g.drawImage(this.cache[idx],px-size,py-size,size*2,size*2)}g.restore()}
+}
+
+class SmoothCanvasSpace extends CanvasSpace{
+ constructor(c){
+  super(c);this.frameWorker=null;this.framePending=false;this.workerFrame=null;this.sceneGeneration=0;
+  this.frameWorker=this.startStarWorker();
+ }
+ startStarWorker(){
+  if(typeof Worker==='undefined'||typeof OffscreenCanvas==='undefined'||typeof createImageBitmap==='undefined')return null;
+  try{
+   const draw=CanvasSpace.prototype.draw.toString().replace(/^draw\s*\(/,'function drawStars(');
+   const workerCode=[
+    'const clamp='+clamp.toString()+';',
+    draw,
+    `let state=null;let window={innerWidth:1200};
+     self.onmessage=e=>{const d=e.data;try{
+       if(d.type==='init'){window.innerWidth=d.w;const c=new OffscreenCanvas(Math.round(d.w*d.dpr),Math.round(d.h*d.dpr));
+        const ctx=c.getContext('2d',{alpha:true});const cache=[];
+        for(const hex of ['#8fcaff','#dcb8ff','#ffd39a','#6deac8','#c9e9ff','#ff8f97']){
+         const tile=new OffscreenCanvas(64,64),g=tile.getContext('2d');
+         const grad=g.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,hex);grad.addColorStop(.09,hex+'e8');grad.addColorStop(.28,hex+'70');grad.addColorStop(1,'#00000000');
+         g.fillStyle=grad;g.fillRect(0,0,64,64);cache.push(tile)}
+        state={c,ctx,cache,w:d.w,h:d.h,dpr:d.dpr,count:0,data:null,spriteIndices:null,generation:0};return}
+       if(!state)return;
+       if(d.type==='resize'){state.w=d.w;state.h=d.h;state.dpr=d.dpr;window.innerWidth=d.w;
+        state.c.width=Math.round(d.w*d.dpr);state.c.height=Math.round(d.h*d.dpr);return}
+       if(d.type==='geometry'){state.generation=d.generation;state.data=d.data;state.count=d.count;state.spriteIndices=new Uint8Array(d.count);
+        for(let i=0;i<d.count;i++){const a=i*12,r=d.data[a+6],g=d.data[a+7],b=d.data[a+8];let k=4;
+         if(r>g*1.12&&r>b*.9)k=2;else if(b>r*1.25)k=1;else if(g>r*1.2)k=3;
+         else if(r>g*1.1&&b>g*.8)k=5;else k=0;state.spriteIndices[i]=k;}return}
+       if(d.type==='draw'){if(!state.data||d.generation!==state.generation)return;drawStars.call(state,d.t,d.yaw,d.tilt,d.distance);
+        const bitmap=state.c.transferToImageBitmap();self.postMessage({type:'frame',bitmap,generation:d.generation},[bitmap]);}
+      }catch(err){self.postMessage({type:'error',message:String(err)})}};`
+   ].join('\n');
+   const url=URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'}));
+   const worker=new Worker(url);URL.revokeObjectURL(url);
+   worker.onmessage=e=>{if(e.data.type==='error'){this.failWorker(e.data.message);return}
+     if(e.data.type==='frame'){if(e.data.generation!==this.sceneGeneration){e.data.bitmap?.close?.();return;}this.workerFrame?.close?.();this.workerFrame=e.data.bitmap;this.framePending=false}};
+   worker.onerror=e=>this.failWorker(e.message);
+   worker.postMessage({type:'init',w:this.w,h:this.h,dpr:this.dpr});
+   return worker;
+  }catch(err){console.warn('Offscreen fallback not available:',err.message);return null}
+ }
+ failWorker(message){console.warn('Falling back to original software stars:',message);
+  this.frameWorker?.terminate();this.frameWorker=null;this.framePending=false;this.workerFrame?.close?.();this.workerFrame=null}
+ resize(){super.resize();this.frameWorker?.postMessage({type:'resize',w:this.w,h:this.h,dpr:this.dpr})}
+ setGeometry(data,count){super.setGeometry(data,count);this.sceneGeneration++;this.workerFrame?.close?.();this.workerFrame=null;this.framePending=false;if(this.frameWorker){
+   const copy=data.slice();this.frameWorker.postMessage({type:'geometry',data:copy,count,generation:this.sceneGeneration},[copy.buffer]);
+ }}
+ draw(t,yaw,tilt,distance){
+  if(!this.frameWorker)return super.draw(t,yaw,tilt,distance);
+  if(this.workerFrame){this.ctx.clearRect(0,0,this.c.width,this.c.height);
+   this.ctx.drawImage(this.workerFrame,0,0,this.c.width,this.c.height);
+   this.workerFrame.close?.();this.workerFrame=null;}
+  if(!this.framePending){this.framePending=true;this.frameWorker.postMessage({type:'draw',t,yaw,tilt,distance,generation:this.sceneGeneration})}
+ }
+}
+
+const sceneGeometryCache=new Map();const sceneGeometryCacheLimit=7;
+function buildScene(travel=false){const full=children();const displayed=full.slice(0,42);if(selected&&full.some(x=>x.id===selected.id)&&!displayed.some(x=>x.id===selected.id)){displayed[displayed.length-1]=selected}const investable=displayed.filter(n=>n.kind!=='gap');const worldWeighted=investable.length>0&&investable.every(n=>typeof n.worldWeight==='number');const weighted=!worldWeighted&&investable.length>0&&investable.every(n=>typeof n.weight==='number')&&new Set(investable.map(n=>n.source).filter(Boolean)).size<=1;const magnitudes=displayed.map(n=>n.kind==='gap'?.08:(worldWeighted?(n.worldWeight||0):(weighted?n.weight:Math.max(1,n._count||1)))).sort((a,b)=>a-b);const stats={worldWeighted,weighted,reference:magnitudes[Math.floor(magnitudes.length*.8)]||1};nodes=displayed.map((n,i)=>geomNode(n,i,displayed.length,stats));targetDistance=(innerWidth<760?(nodes.length<4?58:nodes.length<=9?62:nodes.length<=18?65:78):(nodes.length<4?40:nodes.length<=9?42:nodes.length<=18?46:54));distance=travel?targetDistance+34:targetDistance;$('nodeLayer').innerHTML='';for(const n of nodes){const btn=document.createElement('button');btn.type='button';btn.className='node-label';btn.dataset.id=n.id;btn.style.setProperty('--node-color',n._color);const rank=n.kind==='gap'?'NO VERIFIED HOLDINGS':n.ticker?'SECURITY':cosmicForm(n).toUpperCase();btn.innerHTML='<span class="rank">'+ESC(rank)+'</span><strong>'+ESC(n.ticker?`${n.ticker} · ${n.name}`:n.name)+'</strong><em>'+((typeof n.weight==='number')?weight(n.weight)+' · '+ESC(n.source||'ETF'):(n.kind==='gap'?'COVERAGE GAP':fmt(n._count)+' mapped names'))+' &nbsp; ›</em>';btn.addEventListener('click',e=>{e.stopPropagation();focus(n)});$('nodeLayer').appendChild(btn);n._label=btn;if(n._planet){const orb=document.createElement('div');orb.className='planet-orb '+(n._form==='moon'?'moon-orb ':'')+(['gas-giant','rocky','icy','volcanic'][Math.floor(seeded(n.id)()*4)]);orb.style.setProperty('--node-color',n._color);$('nodeLayer').appendChild(orb);n._orb=orb}}
+const sceneKey=[current.id,mode,innerWidth,innerHeight,selected?.id||''].join('|');
+let packed=sceneGeometryCache.get(sceneKey);
+if(packed){sceneGeometryCache.delete(sceneKey);sceneGeometryCache.set(sceneKey,packed)}
+else{
+const v=[];
+// GPU interleaved attributes layout: position, center, tint, size, pulse, drift.
+function star(x,y,z,center,color,sz,phase,drift){const cc=color;v.push(x,y,z,center[0],center[1],center[2],cc[0],cc[1],cc[2],sz,phase,drift)}
+const bg=seeded('stellar-background');for(let i=0;i<(window.innerWidth<750?1050:2450);i++){const x=(bg()-.5)*180,y=(bg()-.5)*110,z=-35-bg()*90;const t=bg();star(x,y,z,[0,0,0],t>.95?[.65,.75,1]:[.32+.45*bg(),.48+.34*bg(),.65+.3*bg()],.4+bg()*1.6,6.28*bg(),0)}
+for(const n of nodes){const r=seeded(n.id+'*');const [rr,gg,bb]=rgb(n._color), center=[n._x,n._y,n._z],rad=n._r;
+const particles=n.kind==='gap'?64:n._planet?88:Math.floor(clamp((window.innerWidth<750?850:1500)*Math.sqrt(rad/5),320,2300));
+for(let i=0;i<particles;i++){let x,y,z,size,drift=.009+r()*.008;const t=r();if(n._planet){const ph=r()*Math.PI*2,ct=r()*2-1,radial=Math.cbrt(r())*rad*.97;x=radial*Math.sqrt(1-ct*ct)*Math.cos(ph);y=radial*Math.sqrt(1-ct*ct)*Math.sin(ph);z=radial*ct;size=.25+.65*r();drift=.002}else{let ring=Math.sqrt(r());let arms=n._form==='galaxy'?(n.id==='us'?2:n.id==='developed'?4:3):n._form==='nebula'?1:0;let arm=i%arms;let phi=(arms?Math.PI*2/arms*arm:0)+((n._form==='galaxy'?(n.id==='emerging'?7.2:5.5):n._form==='nebula'?1.7:0)*ring)+(r()-.5)*(n._form==='galaxy'?.15+.56*ring:Math.PI*2);let R=ring*rad*(.45+.56*r());x=R*Math.cos(phi)+(r()-.5)*rad*.08;y=R*Math.sin(phi)*(.65+.12*r())+(r()-.5)*rad*.05;z=(r()-.5)*(.22+1.55*(1-ring))+(r()-.5)*rad*.1;size=.85+3.15*r()+(r()>.982?5:0);if(i<particles*.065){x=(r()-.5)*rad*.43;y=(r()-.5)*rad*.35;z=(r()-.5)*rad*.18;size=1.1+2.8*r()}}const color=[clamp(rr*(.5+.8*r())+.29*r(),0,1),clamp(gg*(.5+.8*r())+.23*r(),0,1),clamp(bb*(.7+.7*r())+.20*r(),0,1)];star(n._x+x,n._y+y,n._z+z,center,color,size,r()*Math.PI*2,drift)}
+// Luminous core and vertical axial jets emphasize depth without dense geometry.
+for(let i=0;i<(n.kind==='gap'?1:n._planet?3:n._form==='galaxy'?28:14);i++){let a=r()*Math.PI*2,pr=Math.pow(r(),2)*rad*.34;star(n._x+pr*Math.cos(a),n._y+pr*Math.sin(a),n._z+(r()-.5)*rad*.35,center,[.72+.27*r(),.82+.17*r(),1],1.5+3*r(),r()*6.28,.004)}
+for(let i=0;i<(n.kind==='gap'||n._planet||n._form==='nebula'||n._form==='cluster'?0:180);i++){const th=i/180*Math.PI*2;const R=rad*(.98+.05*r());star(n._x+Math.cos(th)*R,n._y+Math.sin(th)*R*.66,n._z+Math.sin(th)*R*.14,center,[rr*.58,gg*.66,bb*.77],.7+r()*1.2,r()*6.28,.003)}
+}
+packed=new Float32Array(v);sceneGeometryCache.set(sceneKey,packed);
+while(sceneGeometryCache.size>sceneGeometryCacheLimit)sceneGeometryCache.delete(sceneGeometryCache.keys().next().value);
+}
+if(renderer)renderer.setGeometry(packed,packed.length/12);if(sceneFx)sceneFx.rebuild(nodes);updateLabels();}
+function point(n){let x=n._x,y=n._y,z=n._z;let cy=Math.cos(rotation),sy=Math.sin(rotation);const rx=x*cy+z*sy,rz=-x*sy+z*cy;const cp=Math.cos(pitch),sp=Math.sin(pitch);const ry=y*cp-rz*sp,pz=y*sp+rz*cp;const d=Math.max(4,distance-pz),s=(window.innerWidth<760?1.35:2.25)/d;const hh=renderer?.h||innerHeight,ww=renderer?.w||innerWidth;return {x:ww/2+rx*s*hh/2,y:hh/2-ry*s*hh/2,depth:d}}
+function updateLabels(){
+ const vw=renderer?.w||innerWidth,vh=renderer?.h||innerHeight;
+ const ordered=nodes.map(n=>({n,p:point(n)})).sort((a,b)=>(b.n.weight??b.n._count??0)-(a.n.weight??a.n._count??0));
+ const allowed=vw<760?Math.min(7,nodes.length):vw<1080?Math.min(14,nodes.length):Math.min(24,nodes.length);const placed=[];
+ for(let i=0;i<ordered.length;i++){
+  const {n,p}=ordered[i],label=n._label;if(!label)continue;
+  const planetRadius=n._planet?Math.max(16,Math.min(vw<760?39:55,n._r*vh*(vw<760?1.35:2.25)/(p.depth*2)*1.45)):0;
+  if(n._orb){const diam=planetRadius*2;n._orb.style.translate=p.x.toFixed(2)+'px '+p.y.toFixed(2)+'px';n._orb.style.width=diam+'px';n._orb.style.height=diam+'px';n._orb.style.opacity=p.depth>100?'.3':'.98'}
+  const edge=vw<760?66:Math.min(340,vw*.25),y=p.y+Math.max(n._planet?planetRadius+19:23,Math.min(69,n._r*4.5));
+  let x=clamp(p.x,edge,vw-edge),yy=clamp(y,vw<760?152:140,vh-(vw<760?181:194));
+  let box={x:x-(vw<760?64:83),y:yy,w:vw<760?128:166,h:vw<760?49:56};
+  const collides=b=>placed.some(o=>b.x<o.x+o.w+4&&b.x+b.w+4>o.x&&b.y<o.y+o.h+3&&b.y+b.h+3>o.y);
+  if(i>=allowed && selected?.id!==n.id){label.style.display='none';continue}
+  if(collides(box)){
+    let found=false;for(let step=1;step<5;step++){for(const sign of [1,-1]){let candidate={...box,y:clamp(box.y+step*59*sign,vw<760?151:141,vh-(vw<760?181:194))};if(!collides(candidate)){box=candidate;yy=box.y;found=true;break}}if(found)break}
+    if(!found && selected?.id!==n.id){label.style.display='none';continue}
+  }
+  label.style.display='block';placed.push(box);label.style.translate=x.toFixed(2)+'px '+yy.toFixed(2)+'px';label.style.opacity=p.depth>85?'.48':'1';label.style.zIndex=String(Math.floor(1000-p.depth));label.classList.toggle('focused',selected?.id===n.id);
+ }
+}
+let lastAnimation=0,lastWebGL=0,lastLabels=0,lastCoordinates=0;
+let recentFrameMs=16.7,workEMA=7,renderScaleCheck=0,lastScene=0,lastAtmos=0;
+function animate(now){
+ if(!renderer)return;
+ if(document.hidden){lastAnimation=now;requestAnimationFrame(animate);return}
+ const dt=lastAnimation?clamp(now-lastAnimation,0,80):16.67;
+ lastAnimation=now;frame++;
+ const startWork=performance.now(),t=now*.001;
+ // Elapsed-time animation avoids speed variations on 30/60/120Hz monitors.
+ if(orbit&&!paused)rotation+=(innerWidth<750?.008:.0114)*dt*.001;
+ distance+=(targetDistance-distance)*(1-Math.exp(-dt*.00435));
+ recentFrameMs=recentFrameMs*.97+dt*.03;
+ const isSoftware=renderer instanceof CanvasSpace;
+ const isConstrained=isSoftware||recentFrameMs>30||workEMA>20;
+ // All layers remain enabled. GPU stars update every display frame when feasible;
+ // the sky and cinematic overlays are composited at the same 30fps cadence.
+ const gpuInterval=isConstrained?30:15;
+ const fxInterval=isConstrained?50:33;
+ if(fxQuality!=='off'&&sceneFx&&now-lastScene>=fxInterval){
+   lastScene=now;sceneFx.last=now;sceneFx.draw(t);
+ }
+ if(now-lastWebGL>=gpuInterval){
+   lastWebGL=now;renderer.draw(t,rotation,pitch,distance);
+ }
+ if(fxQuality!=='off'&&atmosFx&&now-lastAtmos>=fxInterval){
+   lastAtmos=now;atmosFx.last=now;atmosFx.draw(t);
+ }
+ if(now-lastLabels>=(isConstrained?75:42)){
+   lastLabels=now;updateLabels();
+ }
+ if(now-lastCoordinates>400){
+   lastCoordinates=now;$('coordinates').textContent='ROTATION '+rotation.toFixed(2)+' / ZOOM '+(40/distance).toFixed(2);
+ }
+ const elapsed=performance.now()-startWork;
+ workEMA=workEMA*.966+elapsed*.034;
+ // Slowly adapt only framebuffer pixel density, never the artwork, star counts,
+ // shaders, geometry, celestial forms, colors, or cinematic overlays.
+ if(renderer instanceof WebGLSpace&&now-renderScaleCheck>5500){
+   renderScaleCheck=now;
+   if((recentFrameMs>29||workEMA>20)&&renderer.renderScale>.80)
+     renderer.setRenderScale(renderer.renderScale-.12);
+   else if(recentFrameMs<19&&workEMA<10&&renderer.renderScale<1.42)
+     renderer.setRenderScale(renderer.renderScale+.10);
+ }
+ requestAnimationFrame(animate);
+}
+const canvas=$('universe');let pointerMap=new Map(), down=null,lastPinch=null;canvas.addEventListener('pointerdown',e=>{pointerMap.set(e.pointerId,[e.clientX,e.clientY]);canvas.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY,t:performance.now(),yaw:rotation,pitch};paused=true;canvas.classList.add('dragging')});
+canvas.addEventListener('pointermove',e=>{if(!pointerMap.has(e.pointerId))return;const prev=pointerMap.get(e.pointerId);pointerMap.set(e.pointerId,[e.clientX,e.clientY]);if(pointerMap.size>=2){const v=[...pointerMap.values()];const d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);if(lastPinch!==null)targetDistance=clamp(targetDistance*(lastPinch/d),22,110);lastPinch=d;return}if(!down)return;rotation=down.yaw+(e.clientX-down.x)*.006;pitch=clamp(down.pitch-(e.clientY-down.y)*.004,-1.18,1.18)});
+canvas.addEventListener('pointerup',e=>{const clicked=down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<9&&performance.now()-down.t<900;if(clicked){const closest=[...nodes].map(n=>({n,p:point(n)})).sort((a,b)=>Math.hypot(a.p.x-e.clientX,a.p.y-e.clientY)-Math.hypot(b.p.x-e.clientX,b.p.y-e.clientY))[0];if(closest && Math.hypot(closest.p.x-e.clientX,closest.p.y-e.clientY)<Math.max(66,closest.n._r*7))focus(closest.n)}pointerMap.delete(e.pointerId);if(!pointerMap.size){paused=false;down=null;lastPinch=null;canvas.classList.remove('dragging')}});
+canvas.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);paused=false;lastPinch=null;canvas.classList.remove('dragging')});canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=clamp(targetDistance*Math.exp(e.deltaY*.001),20,120)},{passive:false});canvas.addEventListener('dblclick',e=>{e.preventDefault();if(selected?.children?.length)fly(selected)});
+$('effectsMode').onclick=()=>{fxQuality=fxQuality==='ultra'?'balanced':fxQuality==='balanced'?'off':'ultra';if(sceneFx){sceneFx.c.style.display=fxQuality==='off'?'none':'block';if(sceneFx.backdrop)sceneFx.backdrop.style.display=fxQuality==='off'?'none':'block';}if(atmosFx)atmosFx.c.style.display=fxQuality==='off'?'none':'block';$('effectsMode').textContent='FX · '+(fxQuality==='ultra'?'ULTRA':fxQuality==='balanced'?'ECO':'OFF');toast('VISUAL QUALITY · '+fxQuality.toUpperCase())};$('homeBtn').onclick=goHome;$('exploreBtn').onclick=()=>{if(selected?.children?.length)fly(selected);else if(current.children?.[0])fly(current.children[0])};$('cinematicMode').onclick=()=>{orbit=!orbit;$('cinematicMode').textContent='AUTO ORBIT · '+(orbit?'ON':'OFF');toast('CAMERA AUTO ORBIT '+(orbit?'ENABLED':'PAUSED'))};$('structureMode').onclick=()=>setMode('structure');$('returnMode').onclick=()=>setMode('return');function setMode(m){mode=m;$('structureMode').classList.toggle('active',m==='structure');$('returnMode').classList.toggle('active',m==='return');for(const n of nodes){const r=n.returns?.['1d'];if(m==='return'&&typeof r==='number')n._color=r>=0?'#4ee3bc':'#ff7d92';else n._color=colorOf(n);n._label?.style.setProperty('--node-color',n._color);n._orb?.style.setProperty('--node-color',n._color)}buildScene();if(m==='return')toast('RETURN MODE: only available ETF returns are colored. No inferred stock returns.');}
+
+function syncDataLab(){
+ const manual=window.orbitalActiveOrigin==='manual',last=dataset?.generated_at;
+ const name=!live?'STRUCTURE PREVIEW':manual?'MANUAL SNAPSHOT':'GITHUB SNAPSHOT';
+ $('labModeValue').textContent=name;$('labStatusText').textContent=name+(live?' · '+fmt(dataset.root?._count)+' mapped securities':' · no prices implied');
+ $('labDateText').textContent=last?'AS OF '+new Date(last).toLocaleString():'UNDATED PREVIEW';
+ const qa=dataset?.quality;
+ const classified=qa?qa.industry_classified_nodes:all.filter(n=>n.kind==='stock'&&n.industry).length;
+ const stocks=qa?qa.mapped_security_nodes:dataset.root?._count||0;
+ const coverage=stocks?Math.round(1000*classified/stocks)/10:0;
+ $('labCoverage').textContent=live?('STOCK NODES '+fmt(stocks)+'  ·  INDUSTRY CLASSIFIED '+fmt(classified)+' ('+coverage.toFixed(1)+'%)  ·  UNCLASSIFIED '+fmt(Math.max(0,stocks-classified))+'  ·  OFFICIAL INDEX MEMBERSHIP: NO'):'WORLD ATLAS PREVIEW · LOAD GITHUB SNAPSHOT OR IMPORT COLAB JSON';
+ $('labCoverage').style.color=live&&coverage<50?'#ffb77e':'#8bd1fb';
+ $('labLastUpdate').textContent=last?'Created '+new Date(last).toLocaleString()+' · '+Object.keys(dataset.sources||{}).length+' source ETFs.':'An updated holdings file has not been imported.';
+}
+function labTab(which){for(const pg of ['auto','import','colab']){const tab=$('tab'+pg[0].toUpperCase()+pg.slice(1)),page=$('lab'+pg[0].toUpperCase()+pg.slice(1));const active=pg===which;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));page.hidden=!active}if(which==='colab'&&!$('codePreview').textContent)$('codePreview').textContent=$('colabSource').textContent}
+function openDataLab(which='auto'){$('modalShade').classList.remove('show');$('dataLabShade').classList.add('show');syncDataLab();labTab(which)}
+function closeDataLab(){$('dataLabShade').classList.remove('show')}
+function exportSnapshot(){const blob=new Blob([JSON.stringify(dataset)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='orbital-market-universe.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+async function importOrbitFile(file){
+ if(!file)return;
+ try{
+  if(file.size>25e6)throw Error('File exceeds the 25MB limit');
+  if(!/\.json$/i.test(file.name) && file.type!=='application/json')throw Error('Please select the ORBITAL .json snapshot');
+  const parsed=verify(JSON.parse(await file.text()));
+  if(parsed.mode!=='holdings-proxy')throw Error('Import requires a source-backed ORBITAL holdings-proxy file');
+  loadSnapshot(parsed,true,'manual');
+  $('importFeedback').textContent='IMPORTED · '+file.name+' · '+fmt(dataset.root._count)+' stock nodes · '+(dataset.generated_at||'undated')+(dataset.root._count<4000?' · WARNING: INCOMPLETE SNAPSHOT':'');
+  toast('MANUAL SNAPSHOT ACTIVE · '+file.name);
+  closeDataLab();$('modalShade').classList.remove('show');
+ }catch(err){$('importFeedback').textContent='IMPORT FAILED · '+err.message;toast('IMPORT FAILED · '+err.message);console.warn('ORBITAL manual import:',err)}
+}
+async function copyColabCode(){const source=$('colabSource').textContent;try{if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');await navigator.clipboard.writeText(source);toast('COMPLETE COLAB CODE COPIED')}catch(e){const area=document.createElement('textarea');area.value=source;area.style.cssText='position:fixed;opacity:0;left:-10000px';document.body.appendChild(area);area.focus();area.select();const ok=document.execCommand('copy');area.remove();if(ok)toast('COMPLETE COLAB CODE COPIED');else{labTab('colab');$('codePreview').focus();const range=document.createRange();range.selectNodeContents($('codePreview'));const selection=getSelection();selection.removeAllRanges();selection.addRange(range);toast('TEXT SELECTED · USE COPY FROM YOUR BROWSER')}}}
+function downloadColabCode(){const blob=new Blob([$('colabSource').textContent],{type:'text/x-python;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ORBITAL_Colab_One_Cell.py';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+$('dataLabToggle').onclick=()=>openDataLab('auto');$('closeDataLab').onclick=closeDataLab;$('dataLabShade').addEventListener('click',e=>{if(e.target===$('dataLabShade'))closeDataLab()});
+for(const tab of ['auto','import','colab'])$('tab'+tab[0].toUpperCase()+tab.slice(1)).onclick=()=>labTab(tab);
+$('labChooseFile').onclick=()=>$('fileInput').click();$('labFetchNow').onclick=()=>{closeDataLab();fetchSnapshot(true)};
+$('labImportAuto').onclick=()=>{closeDataLab();fetchSnapshot(true)};$('labExport').onclick=exportSnapshot;
+$('copyColab').onclick=copyColabCode;$('downloadColab').onclick=downloadColabCode;
+$('openColab').onclick=()=>window.open('https://colab.research.google.com/#create=true','_blank','noopener,noreferrer');
+const drop=$('dropZone');drop.onclick=()=>$('fileInput').click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('fileInput').click()}};
+drop.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';drop.classList.add('over')});drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');importOrbitFile(e.dataTransfer?.files?.[0])});
+$('effectsMode').textContent='FX · '+(fxQuality==='ultra'?'ULTRA':'ECO');
+syncDataLab();
+
+$('navToggle').onclick=()=>{$('leftpanel').classList.toggle('open');$('rightpanel').classList.remove('open')};$('infoToggle').onclick=()=>{$('rightpanel').classList.toggle('open');$('leftpanel').classList.remove('open')};
+$('searchToggle').onclick=()=>openSearch();$('closeSearch').onclick=()=>closeSearch();$('helpBtn').onclick=()=>{$('modalShade').classList.add('show')};$('closeModal').onclick=()=>{$('modalShade').classList.remove('show')};$('uploadBtn').onclick=()=>$('fileInput').click();$('refreshBtn').onclick=()=>{fetchSnapshot(true);$('modalShade').classList.remove('show')};$('downloadData').onclick=exportSnapshot;
+$('fileInput').addEventListener('change',async e=>{const file=e.target.files?.[0];await importOrbitFile(file);e.target.value=''});
+function openSearch(){$('searchShade').classList.add('show');$('searchInput').value='';runSearch('');setTimeout(()=>$('searchInput').focus(),40)}function closeSearch(){$('searchShade').classList.remove('show')}
+function runSearch(raw){const q=raw.trim().toLowerCase();let hits=q.length<2?all.filter(n=>['galaxy','continent','country'].includes(n.kind)).slice(0,18):all.filter(n=>(n.name||'').toLowerCase().includes(q)||(n.ticker||'').toLowerCase().includes(q)).slice(0,40);$('searchResults').innerHTML=hits.length?hits.map((n,i)=>'<button class="result" data-idx="'+i+'"><span><b>'+ESC(n.ticker||n.name)+'</b><br><small>'+ESC(n.kind.toUpperCase()+' · '+n.name)+'</small></span><span style="color:#82cfff">LOCATE ↗</span></button>').join(''):'<p class="small dim">No matches in the loaded snapshot. Search is limited to mapped holdings and sample records.</p>';$('searchResults').querySelectorAll('.result').forEach(btn=>btn.onclick=()=>{goTo(hits[+btn.dataset.idx]);closeSearch()})}
+$('searchInput').addEventListener('input',e=>runSearch(e.target.value));window.addEventListener('keydown',e=>{const dialog=$('searchShade').classList.contains('show')||$('modalShade').classList.contains('show')||$('dataLabShade').classList.contains('show');if(e.key==='Escape'){$('searchShade').classList.remove('show');$('modalShade').classList.remove('show');$('leftpanel').classList.remove('open');$('rightpanel').classList.remove('open');closeDataLab();return}if(dialog)return;if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();openSearch()}if(e.key==='Backspace'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();goBack()}if(e.key.toLowerCase()==='h')goHome();if(e.key==='ArrowLeft')rotation-=.15;if(e.key==='ArrowRight')rotation+=.15});
+let resizeTimer=0,lastResizeW=innerWidth,lastResizeH=innerHeight;window.addEventListener('resize',()=>{const w=innerWidth,h=innerHeight;if(w===lastResizeW&&h===lastResizeH)return;lastResizeW=w;lastResizeH=h;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(renderer)renderer.resize();if(sceneFx)sceneFx.resize();if(atmosFx)atmosFx.resize();buildScene()},110)},{passive:true});
+try{atmosFx=new CinematicFX($('cinemaFX'))}catch(e){console.warn('Optional cinematic overlay disabled:',e)}setTimeout(()=>{try{sceneFx=new NebulaFX($('nebulaSurface'));sceneFx.rebuild(nodes);if(fxQuality==='off'){sceneFx.c.style.display='none';if(sceneFx.backdrop)sceneFx.backdrop.style.display='none'}}catch(e){console.warn('Optional nebula compositing disabled:',e)}},260);try{renderer=new WebGLSpace(canvas)}catch(err){console.warn('WebGL unavailable, falling back to animated 3D canvas projection:',err.message);try{renderer=new SmoothCanvasSpace(canvas);toast('GPU unavailable: software-rendered 3D mode enabled')}catch(fatal){console.error('No drawing backend',fatal)}}if(renderer){hydrate();renderUI();buildScene();requestAnimationFrame(animate)}else{hydrate();renderUI();}
+try{const c=localStorage.getItem('orbital-cache');if(c){const d=verify(JSON.parse(c));if(d.mode==='holdings-proxy')loadSnapshot(d,false,localStorage.getItem('orbital-source-pref')==='manual'?'manual':'auto')}}catch(e){console.info('No usable local snapshot')}
+fetchSnapshot();
+})();
+</script>
+</body>
+</html>
